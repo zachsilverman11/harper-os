@@ -5,13 +5,13 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Database types
+// Database types (matching our schema)
 export interface DbBusiness {
   id: string;
   name: string;
   icon: string;
   color: string;
-  order_num: number;
+  order: number;
   type: 'business' | 'personal';
   created_at: string;
   updated_at: string;
@@ -23,7 +23,7 @@ export interface DbProject {
   name: string;
   description: string | null;
   color: string;
-  order_num: number;
+  order: number;
   archived: boolean;
   created_at: string;
   updated_at: string;
@@ -32,24 +32,32 @@ export interface DbProject {
 export interface DbTask {
   id: string;
   project_id: string;
+  parent_task_id: string | null;
   title: string;
   description: string | null;
-  status: string;
-  priority: string;
+  status: 'backlog' | 'this_week' | 'today' | 'in_progress' | 'done';
+  priority: 'critical' | 'high' | 'normal' | 'low';
   due_date: string | null;
   due_time: string | null;
-  order_num: number;
+  order: number;
   notes: string | null;
-  links: object[];
   tags: string[];
   assignee: string | null;
   estimated_minutes: number | null;
   actual_minutes: number | null;
   harper_action: boolean;
-  parent_task_id: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+}
+
+export interface DbTaskLink {
+  id: string;
+  task_id: string;
+  type: 'repo' | 'vercel' | 'doc' | 'url' | 'notion' | 'figma';
+  url: string;
+  label: string;
+  created_at: string;
 }
 
 export interface DbGoal {
@@ -59,9 +67,18 @@ export interface DbGoal {
   description: string | null;
   target_date: string | null;
   progress: number;
-  milestones: object[];
   created_at: string;
   updated_at: string;
+}
+
+export interface DbMilestone {
+  id: string;
+  goal_id: string;
+  title: string;
+  completed: boolean;
+  completed_at: string | null;
+  order: number;
+  created_at: string;
 }
 
 export interface DbDailyFocus {
@@ -72,6 +89,16 @@ export interface DbDailyFocus {
   challenges: string[];
   notes: string | null;
   energy_level: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbWeeklyPlan {
+  id: string;
+  week_start: string;
+  theme: string | null;
+  goals: string[];
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }

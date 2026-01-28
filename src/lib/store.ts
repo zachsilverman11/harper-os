@@ -4,8 +4,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { 
   Business, Project, Task, TaskStatus, Priority, Goal, DailyFocus, WeeklyPlan,
-  PROJECT_COLORS
+  PROJECT_COLORS, BoardViewMode
 } from './types';
+import { db } from './db';
 import { format, parseISO } from 'date-fns';
 
 interface HarperStore {
@@ -17,41 +18,50 @@ interface HarperStore {
   dailyFocus: Record<string, DailyFocus>;
   weeklyPlans: Record<string, WeeklyPlan>;
   
+  // Loading/sync state
+  isLoading: boolean;
+  isInitialized: boolean;
+  lastSyncError: string | null;
+  
   // UI State
   selectedProjectId: string | null;
   selectedBusinessId: string | null;
   view: 'board' | 'today' | 'goals' | 'weekly';
+  boardViewMode: BoardViewMode;
   searchQuery: string;
   quickCaptureOpen: boolean;
+  
+  // Initialize from Supabase
+  initialize: () => Promise<void>;
   
   // Business actions
   getBusinessById: (id: string) => Business | undefined;
   getProjectsByBusiness: (businessId: string) => Project[];
   
   // Project actions
-  addProject: (businessId: string, name: string, description?: string) => void;
-  updateProject: (id: string, updates: Partial<Project>) => void;
-  deleteProject: (id: string) => void;
+  addProject: (businessId: string, name: string, description?: string) => Promise<void>;
+  updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
   setSelectedProject: (id: string | null) => void;
   setSelectedBusiness: (id: string | null) => void;
   
   // Task actions
-  addTask: (projectId: string, title: string, status?: TaskStatus) => string;
-  updateTask: (id: string, updates: Partial<Task>) => void;
-  deleteTask: (id: string) => void;
-  moveTask: (taskId: string, newStatus: TaskStatus, newOrder: number) => void;
-  duplicateTask: (taskId: string) => void;
+  addTask: (projectId: string, title: string, status?: TaskStatus) => Promise<string>;
+  updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+  moveTask: (taskId: string, newStatus: TaskStatus, newOrder: number) => Promise<void>;
+  duplicateTask: (taskId: string) => Promise<void>;
   
   // Goal actions
-  addGoal: (businessId: string, title: string) => void;
-  updateGoal: (id: string, updates: Partial<Goal>) => void;
-  deleteGoal: (id: string) => void;
+  addGoal: (businessId: string, title: string) => Promise<void>;
+  updateGoal: (id: string, updates: Partial<Goal>) => Promise<void>;
+  deleteGoal: (id: string) => Promise<void>;
   
   // Daily Focus actions
   getDailyFocus: (date: string) => DailyFocus | undefined;
-  setDailyFocus: (date: string, focus: Partial<DailyFocus>) => void;
-  addToDailyPriorities: (date: string, taskId: string) => void;
-  removeFromDailyPriorities: (date: string, taskId: string) => void;
+  setDailyFocus: (date: string, focus: Partial<DailyFocus>) => Promise<void>;
+  addToDailyPriorities: (date: string, taskId: string) => Promise<void>;
+  removeFromDailyPriorities: (date: string, taskId: string) => Promise<void>;
   
   // Weekly Plan actions
   getWeeklyPlan: (weekStart: string) => WeeklyPlan | undefined;
@@ -59,6 +69,7 @@ interface HarperStore {
   
   // UI actions
   setView: (view: 'board' | 'today' | 'goals' | 'weekly') => void;
+  setBoardViewMode: (mode: BoardViewMode) => void;
   setSearchQuery: (query: string) => void;
   setQuickCaptureOpen: (open: boolean) => void;
   
@@ -75,396 +86,55 @@ interface HarperStore {
 
 const generateId = () => crypto.randomUUID();
 
-// ============================================
-// DEFAULT DATA - Businesses
-// ============================================
-const DEFAULT_BUSINESSES: Business[] = [
-  {
-    id: 'inspired-swim',
-    name: 'Inspired Swim',
-    icon: '🏊',
-    color: '#06b6d4',
-    order: 0,
-    type: 'business',
-  },
-  {
-    id: 'inspired-mortgage',
-    name: 'Inspired Mortgage',
-    icon: '🏠',
-    color: '#3b82f6',
-    order: 1,
-    type: 'business',
-  },
-  {
-    id: 'personal',
-    name: 'Personal',
-    icon: '👤',
-    color: '#8b5cf6',
-    order: 2,
-    type: 'personal',
-  },
-];
-
-// ============================================
-// DEFAULT DATA - Projects (nested under businesses)
-// ============================================
-const DEFAULT_PROJECTS: Project[] = [
-  // Inspired Swim projects
-  {
-    id: 'nata',
-    businessId: 'inspired-swim',
-    name: 'Nata',
-    description: 'Booking and management platform',
-    color: PROJECT_COLORS[0],
-    order: 0,
-    archived: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'swim-hub',
-    businessId: 'inspired-swim',
-    name: 'Swim Hub',
-    description: 'Marketing/ops dashboards',
-    color: PROJECT_COLORS[1],
-    order: 1,
-    archived: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'splash-zone',
-    businessId: 'inspired-swim',
-    name: 'Splash Zone',
-    description: 'Instructor engagement & reviews',
-    color: PROJECT_COLORS[2],
-    order: 2,
-    archived: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'is-marketing',
-    businessId: 'inspired-swim',
-    name: 'Marketing',
-    description: 'Ads, retargeting, GBP',
-    color: PROJECT_COLORS[3],
-    order: 3,
-    archived: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'is-operations',
-    businessId: 'inspired-swim',
-    name: 'Operations',
-    description: 'Team, locations, metrics',
-    color: PROJECT_COLORS[4],
-    order: 4,
-    archived: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  
-  // Inspired Mortgage projects
-  {
-    id: 'holly',
-    businessId: 'inspired-mortgage',
-    name: 'Holly',
-    description: 'SMS AI agent for home buyers',
-    color: PROJECT_COLORS[5],
-    order: 0,
-    archived: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'lod',
-    businessId: 'inspired-mortgage',
-    name: 'LOD',
-    description: 'Leads on Demand - nurturing system',
-    color: PROJECT_COLORS[6],
-    order: 1,
-    archived: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'im-operations',
-    businessId: 'inspired-mortgage',
-    name: 'Operations',
-    description: 'Team, leads, pipeline',
-    color: PROJECT_COLORS[7],
-    order: 2,
-    archived: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  
-  // Personal projects
-  {
-    id: 'golf',
-    businessId: 'personal',
-    name: 'Golf',
-    description: 'Scratch golfer - 170+ mph ball speed goal',
-    color: '#84cc16',
-    order: 0,
-    archived: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'health',
-    businessId: 'personal',
-    name: 'Health',
-    description: 'Fitness, nutrition, physio',
-    color: '#10b981',
-    order: 1,
-    archived: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'harper-os',
-    businessId: 'personal',
-    name: 'Harper OS',
-    description: 'This productivity system',
-    color: '#ec4899',
-    order: 2,
-    archived: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
-
-// ============================================
-// DEFAULT DATA - Real tasks from Jan 28, 2026
-// ============================================
-const DEFAULT_TASKS: Task[] = [
-  // TODAY - Critical/High Priority
-  {
-    id: generateId(),
-    projectId: 'harper-os',
-    title: 'Set up Supabase for Harper OS',
-    description: 'Create project, get URL and anon key, share with Harper',
-    status: 'today',
-    priority: 'critical',
-    order: 0,
-    links: [{ type: 'url', url: 'https://supabase.com', label: 'Supabase' }],
-    tags: ['setup', 'harper'],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: generateId(),
-    projectId: 'nata',
-    title: 'Review booking-v3 branch',
-    description: 'Check swimmers page and location picker fixes',
-    status: 'today',
-    priority: 'high',
-    order: 1,
-    links: [{ type: 'repo', url: 'https://github.com', label: 'GitHub' }],
-    tags: ['dev', 'review'],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: generateId(),
-    projectId: 'harper-os',
-    title: 'Add Harper to Slack workspace',
-    description: 'Grant Harper access to Inspired Swim Slack',
-    status: 'today',
-    priority: 'high',
-    order: 2,
-    links: [],
-    tags: ['access', 'setup'],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: generateId(),
-    projectId: 'is-marketing',
-    title: 'Add Harper to GA4',
-    description: 'Add harper.clawdbot@gmail.com as viewer',
-    status: 'today',
-    priority: 'high',
-    order: 3,
-    links: [],
-    tags: ['access', 'analytics'],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: generateId(),
-    projectId: 'is-marketing',
-    title: 'Add Harper to Google Ads',
-    description: 'Add harper.clawdbot@gmail.com',
-    status: 'today',
-    priority: 'high',
-    order: 4,
-    links: [],
-    tags: ['access', 'ads'],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  
-  // THIS WEEK
-  {
-    id: generateId(),
-    projectId: 'is-operations',
-    title: 'Review sales conversion rates',
-    description: 'Check this week\'s conversion metrics with Cheri',
-    status: 'this_week',
-    priority: 'high',
-    order: 0,
-    links: [],
-    tags: ['metrics'],
-    assignee: 'cheri',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: generateId(),
-    projectId: 'holly',
-    title: 'Schedule demo with Realtors',
-    description: 'Line up validation demos for SMS agent',
-    status: 'this_week',
-    priority: 'high',
-    order: 1,
-    links: [],
-    tags: ['sales', 'validation'],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: generateId(),
-    projectId: 'is-marketing',
-    title: 'Install Meta Pixel',
-    description: 'Install pixel via GTM - free, starts building audiences',
-    status: 'this_week',
-    priority: 'normal',
-    order: 2,
-    links: [],
-    tags: ['marketing', 'setup'],
-    harperAction: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  
-  // BACKLOG
-  {
-    id: generateId(),
-    projectId: 'lod',
-    title: 'Test dark mode for night-shift advisors',
-    description: 'Verify the dark mode implementation',
-    status: 'backlog',
-    priority: 'normal',
-    order: 0,
-    links: [],
-    tags: ['dev', 'ux'],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: generateId(),
-    projectId: 'nata',
-    title: 'Fix conversion tracking',
-    description: 'Currently measures clicks, not bookings - critical for retargeting',
-    status: 'backlog',
-    priority: 'high',
-    order: 1,
-    links: [],
-    tags: ['dev', 'analytics'],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: generateId(),
-    projectId: 'is-marketing',
-    title: 'Execute Meta retargeting strategy',
-    description: 'After Nata 2.0 + tracking fixed + 500+ audience',
-    status: 'backlog',
-    priority: 'normal',
-    order: 2,
-    links: [],
-    tags: ['marketing', 'ads'],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: generateId(),
-    projectId: 'splash-zone',
-    title: 'Appeal Langley GBP suspension',
-    description: 'Location suspended - need to investigate and appeal',
-    status: 'backlog',
-    priority: 'normal',
-    order: 3,
-    links: [],
-    tags: ['gbp'],
-    harperAction: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: generateId(),
-    projectId: 'golf',
-    title: 'Practice session - driver speed',
-    description: 'Work on ball speed with new technique',
-    status: 'backlog',
-    priority: 'low',
-    order: 4,
-    links: [],
-    tags: ['practice'],
-    estimatedMinutes: 90,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  
-  // DONE (today's wins)
-  {
-    id: generateId(),
-    projectId: 'splash-zone',
-    title: 'Set up GBP API access',
-    description: 'OAuth flow with Zach\'s account - full access to 17 locations',
-    status: 'done',
-    priority: 'high',
-    order: 0,
-    links: [],
-    tags: ['gbp', 'api'],
-    completedAt: new Date(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: generateId(),
-    projectId: 'splash-zone',
-    title: 'Message Cheri about GBP strategy',
-    description: 'Sent intro in #harper Slack channel',
-    status: 'done',
-    priority: 'normal',
-    order: 1,
-    links: [],
-    tags: ['gbp', 'cheri'],
-    completedAt: new Date(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
-
 export const useHarperStore = create<HarperStore>()(
   persist(
     (set, get) => ({
-      businesses: DEFAULT_BUSINESSES,
-      projects: DEFAULT_PROJECTS,
-      tasks: DEFAULT_TASKS,
+      businesses: [],
+      projects: [],
+      tasks: [],
       goals: [],
       dailyFocus: {},
       weeklyPlans: {},
+      isLoading: false,
+      isInitialized: false,
+      lastSyncError: null,
       selectedProjectId: null,
       selectedBusinessId: null,
       view: 'board',
+      boardViewMode: 'list',
       searchQuery: '',
       quickCaptureOpen: false,
+
+      // Initialize from Supabase
+      initialize: async () => {
+        if (get().isInitialized) return;
+        
+        set({ isLoading: true, lastSyncError: null });
+        try {
+          const [businesses, projects, tasks, goals] = await Promise.all([
+            db.getBusinesses(),
+            db.getProjects(),
+            db.getTasks(),
+            db.getGoals(),
+          ]);
+          
+          set({ 
+            businesses, 
+            projects, 
+            tasks, 
+            goals,
+            isLoading: false, 
+            isInitialized: true 
+          });
+        } catch (error) {
+          console.error('Failed to initialize from Supabase:', error);
+          set({ 
+            isLoading: false, 
+            lastSyncError: error instanceof Error ? error.message : 'Unknown error',
+            isInitialized: true // Still mark as initialized to use cached data
+          });
+        }
+      },
 
       // Business actions
       getBusinessById: (id) => get().businesses.find((b) => b.id === id),
@@ -476,63 +146,85 @@ export const useHarperStore = create<HarperStore>()(
       },
 
       // Project actions
-      addProject: (businessId, name, description) => {
-        const projects = get().projects;
-        const businessProjects = projects.filter((p) => p.businessId === businessId);
-        const newProject: Project = {
-          id: generateId(),
-          businessId,
-          name,
-          description,
-          color: PROJECT_COLORS[businessProjects.length % PROJECT_COLORS.length],
-          order: businessProjects.length,
-          archived: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        set({ projects: [...projects, newProject] });
+      addProject: async (businessId, name, description) => {
+        try {
+          const newProject = await db.createProject(businessId, name, description);
+          set({ projects: [...get().projects, newProject] });
+        } catch (error) {
+          console.error('Failed to create project:', error);
+          set({ lastSyncError: error instanceof Error ? error.message : 'Failed to create project' });
+        }
       },
 
-      updateProject: (id, updates) => {
+      updateProject: async (id, updates) => {
+        // Optimistic update
         set({
           projects: get().projects.map((p) =>
             p.id === id ? { ...p, ...updates, updatedAt: new Date() } : p
           ),
         });
+        
+        try {
+          await db.updateProject(id, updates);
+        } catch (error) {
+          console.error('Failed to update project:', error);
+          // Could revert here if needed
+        }
       },
 
-      deleteProject: (id) => {
+      deleteProject: async (id) => {
+        // Optimistic update
         set({
           projects: get().projects.filter((p) => p.id !== id),
           tasks: get().tasks.filter((t) => t.projectId !== id),
         });
+        
+        try {
+          await db.deleteProject(id);
+        } catch (error) {
+          console.error('Failed to delete project:', error);
+        }
       },
 
       setSelectedProject: (id) => set({ selectedProjectId: id }),
       setSelectedBusiness: (id) => set({ selectedBusinessId: id }),
 
       // Task actions
-      addTask: (projectId, title, status = 'backlog') => {
-        const tasks = get().tasks;
-        const tasksInColumn = tasks.filter((t) => t.status === status);
-        const id = generateId();
-        const newTask: Task = {
-          id,
+      addTask: async (projectId, title, status = 'backlog') => {
+        const tempId = generateId();
+        const tempTask: Task = {
+          id: tempId,
           projectId,
           title,
           status,
           priority: 'normal',
-          order: tasksInColumn.length,
+          order: get().tasks.filter(t => t.status === status).length,
           links: [],
           tags: [],
           createdAt: new Date(),
           updatedAt: new Date(),
         };
-        set({ tasks: [...tasks, newTask] });
-        return id;
+        
+        // Optimistic update
+        set({ tasks: [...get().tasks, tempTask] });
+        
+        try {
+          const newTask = await db.createTask(projectId, title, status);
+          // Replace temp task with real one
+          set({
+            tasks: get().tasks.map(t => t.id === tempId ? newTask : t)
+          });
+          return newTask.id;
+        } catch (error) {
+          console.error('Failed to create task:', error);
+          // Remove temp task on failure
+          set({ tasks: get().tasks.filter(t => t.id !== tempId) });
+          return tempId;
+        }
       },
 
-      updateTask: (id, updates) => {
+      updateTask: async (id, updates) => {
+        // Optimistic update
         set({
           tasks: get().tasks.map((t) =>
             t.id === id
@@ -550,13 +242,26 @@ export const useHarperStore = create<HarperStore>()(
               : t
           ),
         });
+        
+        try {
+          await db.updateTask(id, updates);
+        } catch (error) {
+          console.error('Failed to update task:', error);
+        }
       },
 
-      deleteTask: (id) => {
+      deleteTask: async (id) => {
+        // Optimistic update
         set({ tasks: get().tasks.filter((t) => t.id !== id) });
+        
+        try {
+          await db.deleteTask(id);
+        } catch (error) {
+          console.error('Failed to delete task:', error);
+        }
       },
 
-      moveTask: (taskId, newStatus, newOrder) => {
+      moveTask: async (taskId, newStatus, newOrder) => {
         const tasks = get().tasks;
         const task = tasks.find((t) => t.id === taskId);
         if (!task) return;
@@ -576,95 +281,110 @@ export const useHarperStore = create<HarperStore>()(
 
         const reorderedTarget = targetColumnTasks.map((t, i) => ({ ...t, order: i }));
         
+        // Optimistic update
         set({
           tasks: [
             ...otherTasks.filter((t) => t.status !== newStatus),
             ...reorderedTarget,
           ],
         });
+        
+        try {
+          await db.moveTask(taskId, newStatus, newOrder);
+        } catch (error) {
+          console.error('Failed to move task:', error);
+        }
       },
 
-      duplicateTask: (taskId) => {
+      duplicateTask: async (taskId) => {
         const task = get().tasks.find((t) => t.id === taskId);
         if (!task) return;
         
-        const newTask: Task = {
-          ...task,
-          id: generateId(),
-          title: `${task.title} (copy)`,
-          status: 'backlog',
-          completedAt: undefined,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        set({ tasks: [...get().tasks, newTask] });
+        await get().addTask(task.projectId, `${task.title} (copy)`, 'backlog');
       },
 
       // Goal actions
-      addGoal: (businessId, title) => {
-        const newGoal: Goal = {
-          id: generateId(),
-          businessId,
-          title,
-          progress: 0,
-          milestones: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        set({ goals: [...get().goals, newGoal] });
+      addGoal: async (businessId, title) => {
+        try {
+          const newGoal = await db.createGoal(businessId, title);
+          set({ goals: [...get().goals, newGoal] });
+        } catch (error) {
+          console.error('Failed to create goal:', error);
+        }
       },
 
-      updateGoal: (id, updates) => {
+      updateGoal: async (id, updates) => {
         set({
           goals: get().goals.map((g) =>
             g.id === id ? { ...g, ...updates, updatedAt: new Date() } : g
           ),
         });
+        
+        try {
+          await db.updateGoal(id, updates);
+        } catch (error) {
+          console.error('Failed to update goal:', error);
+        }
       },
 
-      deleteGoal: (id) => {
+      deleteGoal: async (id) => {
         set({ goals: get().goals.filter((g) => g.id !== id) });
+        
+        try {
+          await db.deleteGoal(id);
+        } catch (error) {
+          console.error('Failed to delete goal:', error);
+        }
       },
 
       // Daily Focus
       getDailyFocus: (date) => get().dailyFocus[date],
       
-      setDailyFocus: (date, focus) => {
+      setDailyFocus: async (date, focus) => {
         const existing = get().dailyFocus[date];
+        const updated: DailyFocus = {
+          id: existing?.id || generateId(),
+          date,
+          priorities: focus.priorities ?? existing?.priorities ?? [],
+          wins: focus.wins ?? existing?.wins ?? [],
+          challenges: focus.challenges ?? existing?.challenges ?? [],
+          notes: focus.notes ?? existing?.notes,
+          energyLevel: focus.energyLevel ?? existing?.energyLevel,
+          createdAt: existing?.createdAt || new Date(),
+          updatedAt: new Date(),
+        };
+        
         set({
           dailyFocus: {
             ...get().dailyFocus,
-            [date]: {
-              id: existing?.id || generateId(),
-              date,
-              priorities: existing?.priorities || [],
-              wins: existing?.wins || [],
-              challenges: existing?.challenges || [],
-              createdAt: existing?.createdAt || new Date(),
-              updatedAt: new Date(),
-              ...focus,
-            },
+            [date]: updated,
           },
         });
+        
+        try {
+          await db.upsertDailyFocus(date, updated);
+        } catch (error) {
+          console.error('Failed to update daily focus:', error);
+        }
       },
 
-      addToDailyPriorities: (date, taskId) => {
+      addToDailyPriorities: async (date, taskId) => {
         const focus = get().dailyFocus[date];
         if (focus?.priorities.includes(taskId)) return;
-        get().setDailyFocus(date, {
+        await get().setDailyFocus(date, {
           priorities: [...(focus?.priorities || []), taskId],
         });
       },
 
-      removeFromDailyPriorities: (date, taskId) => {
+      removeFromDailyPriorities: async (date, taskId) => {
         const focus = get().dailyFocus[date];
         if (!focus) return;
-        get().setDailyFocus(date, {
+        await get().setDailyFocus(date, {
           priorities: focus.priorities.filter((id) => id !== taskId),
         });
       },
 
-      // Weekly Plan
+      // Weekly Plan (keeping local for now)
       getWeeklyPlan: (weekStart) => get().weeklyPlans[weekStart],
       
       setWeeklyPlan: (weekStart, plan) => {
@@ -675,10 +395,11 @@ export const useHarperStore = create<HarperStore>()(
             [weekStart]: {
               id: existing?.id || generateId(),
               weekStart,
-              goals: existing?.goals || [],
+              goals: plan.goals ?? existing?.goals ?? [],
+              theme: plan.theme ?? existing?.theme,
+              notes: plan.notes ?? existing?.notes,
               createdAt: existing?.createdAt || new Date(),
               updatedAt: new Date(),
-              ...plan,
             },
           },
         });
@@ -686,6 +407,7 @@ export const useHarperStore = create<HarperStore>()(
 
       // UI actions
       setView: (view) => set({ view }),
+      setBoardViewMode: (boardViewMode) => set({ boardViewMode }),
       setSearchQuery: (searchQuery) => set({ searchQuery }),
       setQuickCaptureOpen: (quickCaptureOpen) => set({ quickCaptureOpen }),
 
@@ -747,6 +469,20 @@ export const useHarperStore = create<HarperStore>()(
     }),
     {
       name: 'harper-os-storage',
+      partialize: (state) => ({
+        // Only persist UI state and cache data locally
+        selectedProjectId: state.selectedProjectId,
+        selectedBusinessId: state.selectedBusinessId,
+        view: state.view,
+        boardViewMode: state.boardViewMode,
+        dailyFocus: state.dailyFocus,
+        weeklyPlans: state.weeklyPlans,
+        // Cache Supabase data for offline/fast load
+        businesses: state.businesses,
+        projects: state.projects,
+        tasks: state.tasks,
+        goals: state.goals,
+      }),
     }
   )
 );

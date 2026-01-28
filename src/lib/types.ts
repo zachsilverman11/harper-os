@@ -1,6 +1,7 @@
 export type Priority = 'critical' | 'high' | 'normal' | 'low';
 export type TaskStatus = 'backlog' | 'this_week' | 'today' | 'in_progress' | 'done';
 export type RecurrenceType = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type BoardViewMode = 'kanban' | 'list';
 
 // Top-level organizational units
 export interface Business {
@@ -137,6 +138,9 @@ export const TEAM_MEMBERS = [
   { id: 'jakub', name: 'Jakub', role: 'Inspired Mortgage' },
   { id: 'harper', name: 'Harper', role: 'Chief of Staff (AI)' },
 ];
+
+// Alias for backwards compat
+export const ASSIGNEES = TEAM_MEMBERS;
 
 // For keyboard shortcuts
 export const KEYBOARD_SHORTCUTS = {

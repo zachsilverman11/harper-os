@@ -12,6 +12,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 
 export function Sidebar() {
@@ -22,7 +31,8 @@ export function Sidebar() {
     selectedProjectId, 
     setSelectedProject,
     setQuickCaptureOpen, 
-    getProjectsByBusiness
+    getProjectsByBusiness,
+    addProject
   } = useHarperStore();
   
   const [openBusinesses, setOpenBusinesses] = useState<Record<string, boolean>>({
@@ -30,9 +40,29 @@ export function Sidebar() {
     'inspired-mortgage': true,
     'personal': true,
   });
+  
+  const [addProjectOpen, setAddProjectOpen] = useState(false);
+  const [addProjectBusinessId, setAddProjectBusinessId] = useState<string | null>(null);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectDesc, setNewProjectDesc] = useState('');
 
   const toggleBusiness = (id: string) => {
     setOpenBusinesses((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+  
+  const handleAddProject = () => {
+    if (newProjectName.trim() && addProjectBusinessId) {
+      addProject(addProjectBusinessId, newProjectName.trim(), newProjectDesc.trim() || undefined);
+      setNewProjectName('');
+      setNewProjectDesc('');
+      setAddProjectOpen(false);
+      setAddProjectBusinessId(null);
+    }
+  };
+  
+  const openAddProjectDialog = (businessId: string) => {
+    setAddProjectBusinessId(businessId);
+    setAddProjectOpen(true);
   };
 
   return (
@@ -171,6 +201,14 @@ export function Sidebar() {
                     <span className="truncate">{project.name}</span>
                   </Button>
                 ))}
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-sm text-slate-600 hover:text-slate-400 hover:bg-slate-800/50"
+                  onClick={() => openAddProjectDialog(business.id)}
+                >
+                  <Plus className="h-3 w-3 mr-2" />
+                  Add Project
+                </Button>
               </CollapsibleContent>
             </Collapsible>
           );
@@ -187,6 +225,52 @@ export function Sidebar() {
           Settings
         </Button>
       </div>
+      
+      {/* Add Project Dialog */}
+      <Dialog open={addProjectOpen} onOpenChange={setAddProjectOpen}>
+        <DialogContent className="bg-slate-900 border-slate-700">
+          <DialogHeader>
+            <DialogTitle>Add Project</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="project-name">Name</Label>
+              <Input
+                id="project-name"
+                placeholder="e.g., Website Redesign"
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                className="bg-slate-800 border-slate-700"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAddProject();
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="project-desc">Description (optional)</Label>
+              <Input
+                id="project-desc"
+                placeholder="Brief description..."
+                value={newProjectDesc}
+                onChange={(e) => setNewProjectDesc(e.target.value)}
+                className="bg-slate-800 border-slate-700"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAddProject();
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAddProjectOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddProject} disabled={!newProjectName.trim()}>
+              Add Project
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }
