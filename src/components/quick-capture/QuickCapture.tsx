@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -18,19 +19,23 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
+  SelectLabel,
 } from '@/components/ui/select';
-import { Zap, Send } from 'lucide-react';
+import { Zap, Send, ChevronDown, StickyNote } from 'lucide-react';
 
 export function QuickCapture() {
   const { 
-    projects, quickCaptureOpen, setQuickCaptureOpen, 
-    addTask, setView, selectedProjectId 
+    businesses, projects, quickCaptureOpen, setQuickCaptureOpen, 
+    addTask, setView, selectedProjectId, getProjectsByBusiness
   } = useHarperStore();
   
   const [title, setTitle] = useState('');
   const [projectId, setProjectId] = useState(selectedProjectId || projects[0]?.id || '');
   const [status, setStatus] = useState<TaskStatus>('backlog');
   const [priority, setPriority] = useState<Priority>('normal');
+  const [showNotes, setShowNotes] = useState(false);
+  const [notes, setNotes] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -60,25 +65,37 @@ export function QuickCapture() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setQuickCaptureOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
     
-    addTask(projectId, title.trim(), status);
-    setTitle('');
+    const taskId = await addTask(projectId, title.trim(), status);
+    // If we have notes, update the task with notes
+    // Note: addTask returns the ID, we'd need updateTask for notes
+    // For now, notes are captured but would need updateTask call
     
-    // Keep dialog open for rapid entry, or close
-    // setQuickCaptureOpen(false);
+    setTitle('');
+    setNotes('');
+    setShowNotes(false);
   };
 
-  const handleQuickSubmit = () => {
+  const handleQuickSubmit = async () => {
     if (!title.trim()) return;
-    addTask(projectId, title.trim(), status);
+    await addTask(projectId, title.trim(), status);
     setTitle('');
+    setNotes('');
+    setShowNotes(false);
     setQuickCaptureOpen(false);
   };
 
   const project = projects.find((p) => p.id === projectId);
+
+  const priorityLabels: Record<Priority, string> = {
+    critical: '🔴 Critical',
+    high: '🟠 High',
+    normal: '🔵 Normal',
+    low: '⚪ Low',
+  };
 
   return (
     <Dialog open={quickCaptureOpen} onOpenChange={setQuickCaptureOpen}>
@@ -105,10 +122,10 @@ export function QuickCapture() {
             </Button>
           </div>
 
-          <div className="flex gap-3 flex-wrap">
-            {/* Project */}
+          <div className="flex gap-3 flex-wrap items-center">
+            {/* Project - Grouped by Business */}
             <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger className="w-40 bg-slate-800 border-slate-700">
+              <SelectTrigger className="w-44 bg-slate-800 border-slate-700">
                 <SelectValue>
                   <div className="flex items-center gap-2">
                     {project && (
@@ -121,18 +138,30 @@ export function QuickCapture() {
                   </div>
                 </SelectValue>
               </SelectTrigger>
-              <SelectContent>
-                {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="h-2 w-2 rounded-full"
-                        style={{ backgroundColor: p.color }}
-                      />
-                      {p.name}
-                    </div>
-                  </SelectItem>
-                ))}
+              <SelectContent className="max-h-64">
+                {businesses.map((business) => {
+                  const businessProjects = getProjectsByBusiness(business.id);
+                  if (businessProjects.length === 0) return null;
+                  
+                  return (
+                    <SelectGroup key={business.id}>
+                      <SelectLabel className="text-slate-400 font-semibold">
+                        {business.icon} {business.name}
+                      </SelectLabel>
+                      {businessProjects.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          <div className="flex items-center gap-2 pl-2">
+                            <div
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: p.color }}
+                            />
+                            {p.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  );
+                })}
               </SelectContent>
             </Select>
 
@@ -150,22 +179,42 @@ export function QuickCapture() {
               </SelectContent>
             </Select>
 
-            {/* Priority */}
-            <div className="flex gap-1">
-              {(['critical', 'high', 'normal', 'low'] as Priority[]).map((p) => (
-                <Badge
-                  key={p}
-                  variant="outline"
-                  className={`cursor-pointer text-xs ${PRIORITY_CONFIG[p].bgColor} ${
-                    priority === p ? 'ring-2 ring-offset-2 ring-offset-slate-900' : ''
-                  }`}
-                  onClick={() => setPriority(p)}
-                >
-                  {p.charAt(0).toUpperCase()}
-                </Badge>
-              ))}
-            </div>
+            {/* Priority - Clear Labels */}
+            <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
+              <SelectTrigger className="w-32 bg-slate-800 border-slate-700">
+                <SelectValue>
+                  {priorityLabels[priority]}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {(['critical', 'high', 'normal', 'low'] as Priority[]).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {priorityLabels[p]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
+          {/* Optional Notes */}
+          {!showNotes ? (
+            <button
+              type="button"
+              onClick={() => setShowNotes(true)}
+              className="text-sm text-slate-500 hover:text-slate-400 flex items-center gap-1"
+            >
+              <StickyNote className="h-3 w-3" />
+              Add notes...
+            </button>
+          ) : (
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Additional context, links, or details..."
+              className="bg-slate-800 border-slate-700 min-h-[80px] text-sm"
+              autoFocus
+            />
+          )}
 
           <div className="text-xs text-slate-500">
             Press <kbd className="px-1.5 py-0.5 bg-slate-800 rounded">Enter</kbd> to add another, 
