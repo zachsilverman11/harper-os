@@ -144,14 +144,14 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               ? 'bg-blue-500/20 text-blue-400' 
               : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
           }`}
-          onClick={() => {
+          onClick={() => handleNavigation(() => {
             setView('today');
             setSelectedProject(null);
-          }}
+          })}
         >
           <Target className="h-4 w-4 mr-2" />
           Today
-          <span className="ml-auto text-xs text-slate-600">T</span>
+          <span className="ml-auto text-xs text-slate-600 hidden md:inline">T</span>
         </Button>
         <Button
           variant={view === 'board' ? 'secondary' : 'ghost'}
@@ -160,14 +160,14 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               ? 'bg-blue-500/20 text-blue-400' 
               : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
           }`}
-          onClick={() => {
+          onClick={() => handleNavigation(() => {
             setView('board');
             setSelectedProject(null);
-          }}
+          })}
         >
           <LayoutGrid className="h-4 w-4 mr-2" />
           All Tasks
-          <span className="ml-auto text-xs text-slate-600">B</span>
+          <span className="ml-auto text-xs text-slate-600 hidden md:inline">B</span>
         </Button>
         <Button
           variant={view === 'goals' ? 'secondary' : 'ghost'}
@@ -176,11 +176,11 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               ? 'bg-blue-500/20 text-blue-400' 
               : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
           }`}
-          onClick={() => setView('goals')}
+          onClick={() => handleNavigation(() => setView('goals'))}
         >
           <Compass className="h-4 w-4 mr-2" />
           Goals
-          <span className="ml-auto text-xs text-slate-600">G</span>
+          <span className="ml-auto text-xs text-slate-600 hidden md:inline">G</span>
         </Button>
       </nav>
 
@@ -225,10 +225,10 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                         ? 'bg-slate-800 text-slate-100'
                         : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
                     }`}
-                    onClick={() => {
+                    onClick={() => handleNavigation(() => {
                       setSelectedProject(project.id);
                       setView('board');
-                    }}
+                    })}
                   >
                     <div
                       className="h-2 w-2 rounded-full mr-2 flex-shrink-0"
@@ -312,5 +312,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         </DialogContent>
       </Dialog>
     </aside>
+    </>
   );
 }

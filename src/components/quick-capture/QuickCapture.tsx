@@ -99,7 +99,7 @@ export function QuickCapture() {
 
   return (
     <Dialog open={quickCaptureOpen} onOpenChange={setQuickCaptureOpen}>
-      <DialogContent className="sm:max-w-[500px] bg-slate-900 border-slate-800">
+      <DialogContent className="sm:max-w-[500px] bg-slate-900 border-slate-800 mx-4 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-slate-100 flex items-center gap-2">
             <Zap className="h-5 w-5 text-amber-400" />
@@ -114,23 +114,23 @@ export function QuickCapture() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What needs to be done?"
-              className="flex-1 bg-slate-800 border-slate-700 text-lg"
+              className="flex-1 bg-slate-800 border-slate-700 text-base md:text-lg"
               autoFocus
             />
-            <Button type="button" onClick={handleQuickSubmit} disabled={!title.trim()}>
+            <Button type="button" onClick={handleQuickSubmit} disabled={!title.trim()} className="shrink-0">
               <Send className="h-4 w-4" />
             </Button>
           </div>
 
-          <div className="flex gap-3 flex-wrap items-center">
+          <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3 items-center">
             {/* Project - Grouped by Business */}
             <Select value={projectId} onValueChange={setProjectId}>
-              <SelectTrigger className="w-44 bg-slate-800 border-slate-700">
+              <SelectTrigger className="col-span-2 sm:w-44 bg-slate-800 border-slate-700">
                 <SelectValue>
                   <div className="flex items-center gap-2">
                     {project && (
                       <div
-                        className="h-2 w-2 rounded-full"
+                        className="h-2 w-2 rounded-full shrink-0"
                         style={{ backgroundColor: project.color }}
                       />
                     )}
@@ -167,7 +167,7 @@ export function QuickCapture() {
 
             {/* Status */}
             <Select value={status} onValueChange={(v) => setStatus(v as TaskStatus)}>
-              <SelectTrigger className="w-32 bg-slate-800 border-slate-700">
+              <SelectTrigger className="sm:w-32 bg-slate-800 border-slate-700">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -181,7 +181,7 @@ export function QuickCapture() {
 
             {/* Priority - Clear Labels */}
             <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
-              <SelectTrigger className="w-32 bg-slate-800 border-slate-700">
+              <SelectTrigger className="sm:w-32 bg-slate-800 border-slate-700">
                 <SelectValue>
                   {priorityLabels[priority]}
                 </SelectValue>

@@ -64,20 +64,20 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
       style={style}
       {...attributes}
       {...listeners}
-      className={`group cursor-grab active:cursor-grabbing bg-slate-900 border-slate-800 hover:border-slate-700 transition-all hover:shadow-lg hover:shadow-slate-950/50 ${
+      className={`group cursor-grab active:cursor-grabbing bg-slate-900 border-slate-800 hover:border-slate-700 transition-all hover:shadow-lg hover:shadow-slate-950/50 w-full ${
         task.status === 'done' ? 'opacity-60' : ''
       } ${isDragging ? 'ring-2 ring-blue-500' : ''}`}
       onClick={onClick}
     >
-      <CardContent className="p-3">
+      <CardContent className="p-2.5 md:p-3">
         <div className="flex items-start gap-2">
-          <div className="mt-0.5 text-slate-600 group-hover:text-slate-400 transition-colors">
+          <div className="mt-0.5 text-slate-600 group-hover:text-slate-400 transition-colors shrink-0">
             <GripVertical className="h-4 w-4" />
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <h3 className={`font-medium text-sm line-clamp-2 ${
+              <h3 className={`font-medium text-sm line-clamp-2 break-words ${
                 task.status === 'done' ? 'line-through text-slate-500' : 'text-slate-100'
               }`}>
                 {task.title}
@@ -87,7 +87,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 shrink-0"
+                    className="h-6 w-6 p-0 md:opacity-0 md:group-hover:opacity-100 shrink-0"
                   >
                     <MoreVertical className="h-3 w-3" />
                   </Button>
@@ -157,56 +157,57 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
               </DropdownMenu>
             </div>
 
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <div className="flex items-center gap-1.5 md:gap-2 mt-2 flex-wrap">
               {project && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 max-w-[100px] md:max-w-none">
                   <div
                     className="h-2 w-2 rounded-full shrink-0"
                     style={{ backgroundColor: project.color }}
                   />
-                  <span className="text-[10px] text-slate-500">{project.name}</span>
+                  <span className="text-[10px] text-slate-500 truncate">{project.name}</span>
                 </div>
               )}
               
               <Badge
                 variant="outline"
-                className={`text-[10px] px-1.5 py-0 ${priorityConfig.bgColor}`}
+                className={`text-[10px] px-1.5 py-0 shrink-0 ${priorityConfig.bgColor}`}
               >
                 {task.priority}
               </Badge>
               
               {dueDisplay && (
-                <span className={`text-[10px] flex items-center gap-1 ${dueDisplay.className}`}>
+                <span className={`text-[10px] flex items-center gap-1 shrink-0 ${dueDisplay.className}`}>
                   <Calendar className="h-3 w-3" />
                   {dueDisplay.text}
                 </span>
               )}
               
               {task.estimatedMinutes && (
-                <span className="text-[10px] text-slate-600 flex items-center gap-1">
+                <span className="text-[10px] text-slate-600 hidden sm:flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   {task.estimatedMinutes}m
                 </span>
               )}
               
               {task.links.length > 0 && (
-                <span className="text-[10px] text-slate-600 flex items-center gap-1">
+                <span className="text-[10px] text-slate-600 hidden sm:flex items-center gap-1">
                   <Link2 className="h-3 w-3" />
                   {task.links.length}
                 </span>
               )}
               
               {assignee && (
-                <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                <span className="text-[10px] text-slate-500 flex items-center gap-1 shrink-0">
                   <User className="h-3 w-3" />
-                  {assignee.name}
+                  <span className="hidden sm:inline">{assignee.name}</span>
+                  <span className="sm:hidden">{assignee.name.split(' ')[0]}</span>
                 </span>
               )}
             </div>
 
             {task.tags.length > 0 && (
               <div className="flex gap-1 mt-2 flex-wrap">
-                {task.tags.slice(0, 3).map((tag) => (
+                {task.tags.slice(0, 2).map((tag) => (
                   <span
                     key={tag}
                     className="text-[9px] px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded"
@@ -214,8 +215,8 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
                     #{tag}
                   </span>
                 ))}
-                {task.tags.length > 3 && (
-                  <span className="text-[9px] text-slate-600">+{task.tags.length - 3}</span>
+                {task.tags.length > 2 && (
+                  <span className="text-[9px] text-slate-600">+{task.tags.length - 2}</span>
                 )}
               </div>
             )}

@@ -39,7 +39,7 @@ export function KanbanColumn({
   };
 
   return (
-    <div className="flex flex-col w-72 shrink-0">
+    <div className="flex flex-col w-[280px] md:w-72 shrink-0 snap-center md:snap-align-none">
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-2">
           <span>{icon}</span>
@@ -64,7 +64,7 @@ export function KanbanColumn({
           isOver ? 'bg-slate-800/50 border-blue-500/50' : `bg-slate-900/30 ${columnColors[status]}`
         }`}
       >
-        <ScrollArea className="h-[calc(100vh-180px)]">
+        <ScrollArea className="h-[calc(100vh-200px)] md:h-[calc(100vh-180px)]">
           <SortableContext
             items={tasks.map((t) => t.id)}
             strategy={verticalListSortingStrategy}

@@ -65,7 +65,7 @@ function TaskRow({ task, projectName, projectColor, onTaskClick }: TaskRowProps)
 
   return (
     <div 
-      className="group flex items-center gap-3 px-4 py-3 hover:bg-slate-800/50 border-b border-slate-800/50 transition-colors cursor-pointer"
+      className="group flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3 hover:bg-slate-800/50 border-b border-slate-800/50 transition-colors cursor-pointer"
       onClick={() => onTaskClick?.(task)}
     >
       {/* Checkbox */}
@@ -73,11 +73,11 @@ function TaskRow({ task, projectName, projectColor, onTaskClick }: TaskRowProps)
         checked={task.status === 'done'}
         onCheckedChange={handleToggleDone}
         onClick={(e) => e.stopPropagation()}
-        className="border-slate-600"
+        className="border-slate-600 shrink-0"
       />
 
       {/* Priority indicator */}
-      <div className={`w-1 h-8 rounded-full ${
+      <div className={`w-1 h-8 rounded-full shrink-0 ${
         task.priority === 'critical' ? 'bg-red-500' :
         task.priority === 'high' ? 'bg-orange-500' :
         task.priority === 'normal' ? 'bg-slate-600' : 'bg-slate-700'
@@ -85,65 +85,73 @@ function TaskRow({ task, projectName, projectColor, onTaskClick }: TaskRowProps)
 
       {/* Task title & details */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className={`font-medium ${task.status === 'done' ? 'line-through text-slate-500' : 'text-slate-100'}`}>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`font-medium truncate ${task.status === 'done' ? 'line-through text-slate-500' : 'text-slate-100'}`}>
             {task.title}
           </span>
           {task.harperAction && (
-            <Badge variant="outline" className="text-xs bg-violet-500/10 border-violet-500/30 text-violet-400">
+            <Badge variant="outline" className="text-xs bg-violet-500/10 border-violet-500/30 text-violet-400 shrink-0">
               ⚡ Harper
             </Badge>
           )}
         </div>
         
-        <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+        <div className="flex items-center gap-2 md:gap-3 mt-1 text-xs text-slate-500 flex-wrap">
           {/* Project */}
           {project && (
             <span className="flex items-center gap-1">
               <div 
-                className="h-2 w-2 rounded-full" 
+                className="h-2 w-2 rounded-full shrink-0" 
                 style={{ backgroundColor: project.color }}
               />
-              {project.name}
+              <span className="truncate max-w-[80px] md:max-w-none">{project.name}</span>
             </span>
           )}
           
           {/* Due date */}
           {task.dueDate && (
             <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
+              <Calendar className="h-3 w-3 shrink-0" />
               {format(new Date(task.dueDate), 'MMM d')}
             </span>
           )}
           
-          {/* Time estimate */}
+          {/* Time estimate - hide on mobile */}
           {task.estimatedMinutes && (
-            <span className="flex items-center gap-1">
+            <span className="hidden sm:flex items-center gap-1">
               <Clock className="h-3 w-3" />
               {task.estimatedMinutes}m
             </span>
           )}
           
-          {/* Tags */}
+          {/* Tags - hide on mobile */}
           {task.tags.length > 0 && (
-            <span className="flex items-center gap-1">
+            <span className="hidden md:flex items-center gap-1">
               <Tag className="h-3 w-3" />
               {task.tags.slice(0, 2).join(', ')}
               {task.tags.length > 2 && `+${task.tags.length - 2}`}
             </span>
           )}
+          
+          {/* Assignee - show inline on mobile */}
+          {task.assignee && (
+            <span className="flex md:hidden items-center gap-1 text-slate-400">
+              <User className="h-3 w-3" />
+              {ASSIGNEES.find(a => a.id === task.assignee)?.name?.split(' ')[0] || task.assignee}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Assignee */}
+      {/* Assignee badge - desktop only */}
       {task.assignee && (
-        <Badge variant="outline" className="text-xs">
+        <Badge variant="outline" className="text-xs hidden md:flex shrink-0">
           {ASSIGNEES.find(a => a.id === task.assignee)?.name || task.assignee}
         </Badge>
       )}
 
-      {/* Status dropdown */}
-      <div onClick={(e) => e.stopPropagation()}>
+      {/* Status dropdown - desktop only */}
+      <div onClick={(e) => e.stopPropagation()} className="hidden md:block">
         <Select value={task.status} onValueChange={handleStatusChange}>
           <SelectTrigger className="w-32 h-8 text-xs bg-slate-900 border-slate-700">
             <SelectValue />
@@ -161,19 +169,33 @@ function TaskRow({ task, projectName, projectColor, onTaskClick }: TaskRowProps)
         </Select>
       </div>
 
-      {/* Actions menu */}
+      {/* Actions menu - always visible on mobile (touch devices can't hover) */}
       <div onClick={(e) => e.stopPropagation()}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="h-8 w-8 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0"
             >
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-slate-900 border-slate-700">
+            {/* Status change - mobile only */}
+            <div className="md:hidden px-2 py-1.5 text-xs text-slate-500 font-medium">Status</div>
+            {STATUS_OPTIONS.map((option) => (
+              <DropdownMenuItem 
+                key={option.value}
+                onClick={() => handleStatusChange(option.value)}
+                className="md:hidden"
+              >
+                <div className={`h-2 w-2 rounded-full mr-2 ${option.color}`} />
+                {option.label}
+                {task.status === option.value && <span className="ml-auto">✓</span>}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator className="md:hidden" />
             <DropdownMenuItem onClick={() => duplicateTask(task.id)}>
               Duplicate
             </DropdownMenuItem>
