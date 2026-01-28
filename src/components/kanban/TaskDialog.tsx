@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { format } from 'date-fns';
 import { 
   Task, Priority, TaskStatus, STATUS_COLUMNS, PRIORITY_CONFIG,
   TEAM_MEMBERS, TaskLink
@@ -17,7 +16,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
   Select,
@@ -25,9 +23,11 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
+  SelectLabel,
 } from '@/components/ui/select';
 import { 
-  Trash2, Calendar, Clock, Link2, Plus, X, User, Tag, ExternalLink 
+  Trash2, Calendar, Clock, Link2, Plus, X, Tag, ExternalLink 
 } from 'lucide-react';
 
 interface TaskDialogProps {
@@ -37,7 +37,7 @@ interface TaskDialogProps {
 }
 
 export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
-  const { projects, updateTask, deleteTask } = useHarperStore();
+  const { projects, businesses, getProjectsByBusiness, updateTask, deleteTask } = useHarperStore();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
@@ -105,14 +105,18 @@ export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
 
   const handleAddLink = () => {
     if (!newLinkUrl.trim()) return;
-    const newLink: TaskLink = {
-      type: 'url',
-      url: newLinkUrl.trim(),
-      label: newLinkLabel.trim() || new URL(newLinkUrl).hostname,
-    };
-    setLinks([...links, newLink]);
-    setNewLinkUrl('');
-    setNewLinkLabel('');
+    try {
+      const newLink: TaskLink = {
+        type: 'url',
+        url: newLinkUrl.trim(),
+        label: newLinkLabel.trim() || new URL(newLinkUrl).hostname,
+      };
+      setLinks([...links, newLink]);
+      setNewLinkUrl('');
+      setNewLinkLabel('');
+    } catch {
+      // Invalid URL
+    }
   };
 
   const handleRemoveLink = (index: number) => {
@@ -121,14 +125,21 @@ export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
 
   const project = projects.find((p) => p.id === projectId);
 
+  const priorityOptions = [
+    { value: 'critical', label: '🔴 Critical', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+    { value: 'high', label: '🟠 High', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
+    { value: 'normal', label: '🔵 Normal', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+    { value: 'low', label: '⚪ Low', color: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] bg-slate-900 border-slate-800 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[550px] bg-slate-900 border-slate-700 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-slate-100">Edit Task</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 pt-4">
+        <div className="space-y-5 pt-2">
           {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
@@ -136,7 +147,7 @@ export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="bg-slate-800 border-slate-700 text-lg font-medium"
+              className="bg-slate-800 border-slate-700 text-base"
             />
           </div>
 
@@ -147,22 +158,22 @@ export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="bg-slate-800 border-slate-700 min-h-[80px]"
+              className="bg-slate-800 border-slate-700 min-h-[60px]"
               placeholder="What needs to be done?"
             />
           </div>
 
-          {/* Row: Project, Status, Priority */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* Project & Status - 2 columns */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Project</Label>
               <Select value={projectId} onValueChange={setProjectId}>
-                <SelectTrigger className="bg-slate-800 border-slate-700">
+                <SelectTrigger className="bg-slate-800 border-slate-700 w-full">
                   <SelectValue>
                     <div className="flex items-center gap-2">
                       {project && (
                         <div
-                          className="h-2 w-2 rounded-full"
+                          className="h-2 w-2 rounded-full shrink-0"
                           style={{ backgroundColor: project.color }}
                         />
                       )}
@@ -170,18 +181,29 @@ export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
                     </div>
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
-                  {projects.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: p.color }}
-                        />
-                        {p.name}
-                      </div>
-                    </SelectItem>
-                  ))}
+                <SelectContent className="bg-slate-900 border-slate-700 max-h-60">
+                  {businesses.map((business) => {
+                    const businessProjects = getProjectsByBusiness(business.id);
+                    if (businessProjects.length === 0) return null;
+                    return (
+                      <SelectGroup key={business.id}>
+                        <SelectLabel className="text-slate-500 text-xs">
+                          {business.icon} {business.name}
+                        </SelectLabel>
+                        {businessProjects.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: p.color }}
+                              />
+                              {p.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -189,10 +211,10 @@ export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
             <div className="space-y-2">
               <Label>Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as TaskStatus)}>
-                <SelectTrigger className="bg-slate-800 border-slate-700">
+                <SelectTrigger className="bg-slate-800 border-slate-700 w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-slate-900 border-slate-700">
                   {STATUS_COLUMNS.map((s) => (
                     <SelectItem key={s.key} value={s.key}>
                       {s.icon} {s.label}
@@ -201,14 +223,17 @@ export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
+          {/* Assignee & Due Date - 2 columns */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Assignee</Label>
               <Select value={assignee || 'none'} onValueChange={(v) => setAssignee(v === 'none' ? undefined : v)}>
-                <SelectTrigger className="bg-slate-800 border-slate-700">
+                <SelectTrigger className="bg-slate-800 border-slate-700 w-full">
                   <SelectValue placeholder="Unassigned" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-slate-900 border-slate-700">
                   <SelectItem value="none">Unassigned</SelectItem>
                   {TEAM_MEMBERS.map((m) => (
                     <SelectItem key={m.id} value={m.id}>
@@ -218,10 +243,7 @@ export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          {/* Row: Due Date, Time Estimate */}
-          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" /> Due Date
@@ -233,10 +255,31 @@ export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
                 className="bg-slate-800 border-slate-700"
               />
             </div>
+          </div>
+
+          {/* Priority & Estimate - 2 columns */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Priority</Label>
+              <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
+                <SelectTrigger className="bg-slate-800 border-slate-700 w-full">
+                  <SelectValue>
+                    {priorityOptions.find(p => p.value === priority)?.label}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-slate-700">
+                  {priorityOptions.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>
+                      {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
-                <Clock className="h-3 w-3" /> Estimate (minutes)
+                <Clock className="h-3 w-3" /> Estimate (min)
               </Label>
               <Input
                 type="number"
@@ -248,25 +291,6 @@ export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
             </div>
           </div>
 
-          {/* Priority */}
-          <div className="space-y-2">
-            <Label>Priority</Label>
-            <div className="flex gap-2">
-              {(['critical', 'high', 'normal', 'low'] as Priority[]).map((p) => (
-                <Badge
-                  key={p}
-                  variant="outline"
-                  className={`cursor-pointer ${PRIORITY_CONFIG[p].bgColor} ${
-                    priority === p ? 'ring-2 ring-offset-2 ring-offset-slate-900 ring-blue-500' : ''
-                  }`}
-                  onClick={() => setPriority(p)}
-                >
-                  {PRIORITY_CONFIG[p].label}
-                </Badge>
-              ))}
-            </div>
-          </div>
-
           <Separator className="bg-slate-800" />
 
           {/* Tags */}
@@ -274,29 +298,31 @@ export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
             <Label className="flex items-center gap-1">
               <Tag className="h-3 w-3" /> Tags
             </Label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {tags.map((tag) => (
-                <Badge key={tag} variant="secondary" className="bg-slate-800 text-slate-300">
-                  #{tag}
-                  <button
-                    onClick={() => handleRemoveTag(tag)}
-                    className="ml-1 hover:text-rose-400"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {tags.map((tag) => (
+                  <span key={tag} className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-slate-800 text-slate-300 rounded">
+                    #{tag}
+                    <button
+                      onClick={() => handleRemoveTag(tag)}
+                      className="hover:text-rose-400"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
             <div className="flex gap-2">
               <Input
                 value={newTag}
                 onChange={(e) => setNewTag(e.target.value)}
                 placeholder="Add tag..."
-                className="bg-slate-800 border-slate-700 flex-1"
+                className="bg-slate-800 border-slate-700 flex-1 h-8 text-sm"
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
               />
-              <Button type="button" variant="outline" onClick={handleAddTag}>
-                <Plus className="h-4 w-4" />
+              <Button type="button" variant="outline" size="sm" onClick={handleAddTag} className="h-8 border-slate-700">
+                <Plus className="h-3 w-3" />
               </Button>
             </div>
           </div>
@@ -307,7 +333,7 @@ export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
               <Link2 className="h-3 w-3" /> Links
             </Label>
             {links.length > 0 && (
-              <div className="space-y-2 mb-2">
+              <div className="space-y-1 mb-2">
                 {links.map((link, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm">
                     <a
@@ -334,16 +360,16 @@ export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
                 value={newLinkUrl}
                 onChange={(e) => setNewLinkUrl(e.target.value)}
                 placeholder="https://..."
-                className="bg-slate-800 border-slate-700 flex-1"
+                className="bg-slate-800 border-slate-700 flex-1 h-8 text-sm"
               />
               <Input
                 value={newLinkLabel}
                 onChange={(e) => setNewLinkLabel(e.target.value)}
                 placeholder="Label"
-                className="bg-slate-800 border-slate-700 w-24"
+                className="bg-slate-800 border-slate-700 w-20 h-8 text-sm"
               />
-              <Button type="button" variant="outline" onClick={handleAddLink}>
-                <Plus className="h-4 w-4" />
+              <Button type="button" variant="outline" size="sm" onClick={handleAddLink} className="h-8 border-slate-700">
+                <Plus className="h-3 w-3" />
               </Button>
             </div>
           </div>
@@ -352,21 +378,18 @@ export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
 
           {/* Notes */}
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes (syncs to Harper&apos;s memory)</Label>
+            <Label htmlFor="notes">Notes</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="bg-slate-800 border-slate-700 min-h-[120px]"
-              placeholder="Context, decisions, blockers, ideas..."
+              className="bg-slate-800 border-slate-700 min-h-[80px]"
+              placeholder="Context, decisions, blockers..."
             />
-            <p className="text-xs text-slate-500">
-              These notes are indexed and searchable across all your tasks
-            </p>
           </div>
 
           {/* Actions */}
-          <div className="flex justify-between pt-4">
+          <div className="flex justify-between pt-2">
             <Button
               variant="ghost"
               className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
@@ -376,10 +399,10 @@ export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
               Delete
             </Button>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => onOpenChange(false)}>
+              <Button variant="outline" onClick={() => onOpenChange(false)} className="border-slate-700">
                 Cancel
               </Button>
-              <Button onClick={handleSave}>Save Changes</Button>
+              <Button onClick={handleSave}>Save</Button>
             </div>
           </div>
         </div>
