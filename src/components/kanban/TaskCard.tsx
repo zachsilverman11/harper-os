@@ -62,21 +62,18 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
     <Card
       ref={setNodeRef}
       style={style}
-      className={`group cursor-pointer bg-slate-900 border-slate-800 hover:border-slate-700 transition-all hover:shadow-lg hover:shadow-slate-950/50 ${
+      {...attributes}
+      {...listeners}
+      className={`group cursor-grab active:cursor-grabbing bg-slate-900 border-slate-800 hover:border-slate-700 transition-all hover:shadow-lg hover:shadow-slate-950/50 ${
         task.status === 'done' ? 'opacity-60' : ''
-      }`}
+      } ${isDragging ? 'ring-2 ring-blue-500' : ''}`}
       onClick={onClick}
     >
       <CardContent className="p-3">
         <div className="flex items-start gap-2">
-          <button
-            {...attributes}
-            {...listeners}
-            className="mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GripVertical className="h-4 w-4 text-slate-500" />
-          </button>
+          <div className="mt-0.5 text-slate-600 group-hover:text-slate-400 transition-colors">
+            <GripVertical className="h-4 w-4" />
+          </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
@@ -95,10 +92,10 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
                     <MoreVertical className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-48 bg-slate-900 border-slate-700">
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>Set Priority</DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
+                    <DropdownMenuSubContent className="bg-slate-900 border-slate-700">
                       {(['critical', 'high', 'normal', 'low'] as const).map((p) => (
                         <DropdownMenuItem
                           key={p}
@@ -115,7 +112,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
                   </DropdownMenuSub>
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>Assign to</DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
+                    <DropdownMenuSubContent className="bg-slate-900 border-slate-700">
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
@@ -138,7 +135,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
                       ))}
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="bg-slate-700" />
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
@@ -152,7 +149,7 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
                       e.stopPropagation();
                       deleteTask(task.id);
                     }}
-                    className="text-rose-400"
+                    className="text-rose-400 focus:text-rose-400"
                   >
                     Delete
                   </DropdownMenuItem>
