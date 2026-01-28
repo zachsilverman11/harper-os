@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useHarperStore } from '@/lib/store';
 import { Task, TaskStatus, ASSIGNEES } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +25,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { TaskDialog } from './TaskDialog';
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string; color: string }[] = [
   { value: 'backlog', label: 'Backlog', color: 'bg-slate-500' },
@@ -44,9 +46,10 @@ interface TaskRowProps {
   task: Task;
   projectName?: string;
   projectColor?: string;
+  onTaskClick?: (task: Task) => void;
 }
 
-function TaskRow({ task, projectName, projectColor }: TaskRowProps) {
+function TaskRow({ task, projectName, projectColor, onTaskClick }: TaskRowProps) {
   const { updateTask, deleteTask, duplicateTask, getProjectById } = useHarperStore();
   const project = getProjectById(task.projectId);
 
@@ -61,11 +64,15 @@ function TaskRow({ task, projectName, projectColor }: TaskRowProps) {
   };
 
   return (
-    <div className="group flex items-center gap-3 px-4 py-3 hover:bg-slate-800/50 border-b border-slate-800/50 transition-colors">
+    <div 
+      className="group flex items-center gap-3 px-4 py-3 hover:bg-slate-800/50 border-b border-slate-800/50 transition-colors cursor-pointer"
+      onClick={() => onTaskClick?.(task)}
+    >
       {/* Checkbox */}
       <Checkbox
         checked={task.status === 'done'}
         onCheckedChange={handleToggleDone}
+        onClick={(e) => e.stopPropagation()}
         className="border-slate-600"
       />
 
@@ -136,46 +143,50 @@ function TaskRow({ task, projectName, projectColor }: TaskRowProps) {
       )}
 
       {/* Status dropdown */}
-      <Select value={task.status} onValueChange={handleStatusChange}>
-        <SelectTrigger className="w-32 h-8 text-xs bg-slate-900 border-slate-700">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {STATUS_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              <div className="flex items-center gap-2">
-                <div className={`h-2 w-2 rounded-full ${option.color}`} />
-                {option.label}
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div onClick={(e) => e.stopPropagation()}>
+        <Select value={task.status} onValueChange={handleStatusChange}>
+          <SelectTrigger className="w-32 h-8 text-xs bg-slate-900 border-slate-700">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {STATUS_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                <div className="flex items-center gap-2">
+                  <div className={`h-2 w-2 rounded-full ${option.color}`} />
+                  {option.label}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Actions menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="bg-slate-900 border-slate-700">
-          <DropdownMenuItem onClick={() => duplicateTask(task.id)}>
-            Duplicate
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem 
-            onClick={() => deleteTask(task.id)}
-            className="text-red-400 focus:text-red-400"
-          >
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div onClick={(e) => e.stopPropagation()}>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-slate-900 border-slate-700">
+            <DropdownMenuItem onClick={() => duplicateTask(task.id)}>
+              Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => deleteTask(task.id)}
+              className="text-red-400 focus:text-red-400"
+            >
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 }
@@ -186,6 +197,7 @@ interface TaskListProps {
 
 export function TaskList({ projectId }: TaskListProps) {
   const { tasks, getProjectById } = useHarperStore();
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   // Filter tasks by project if specified
   const filteredTasks = projectId
@@ -219,26 +231,38 @@ export function TaskList({ projectId }: TaskListProps) {
   }
 
   return (
-    <div className="h-full overflow-auto">
-      {nonEmptyStatuses.map((status) => (
-        <div key={status.value} className="mb-6">
-          {/* Status header */}
-          <div className="sticky top-0 z-10 flex items-center gap-2 px-4 py-2 bg-slate-950/95 backdrop-blur border-b border-slate-800">
-            <div className={`h-2 w-2 rounded-full ${status.color}`} />
-            <span className="font-medium text-sm text-slate-300">{status.label}</span>
-            <span className="text-xs text-slate-600 ml-1">
-              ({groupedTasks[status.value].length})
-            </span>
+    <>
+      <div className="h-full overflow-auto">
+        {nonEmptyStatuses.map((status) => (
+          <div key={status.value} className="mb-6">
+            {/* Status header */}
+            <div className="sticky top-0 z-10 flex items-center gap-2 px-4 py-2 bg-slate-950/95 backdrop-blur border-b border-slate-800">
+              <div className={`h-2 w-2 rounded-full ${status.color}`} />
+              <span className="font-medium text-sm text-slate-300">{status.label}</span>
+              <span className="text-xs text-slate-600 ml-1">
+                ({groupedTasks[status.value].length})
+              </span>
+            </div>
+            
+            {/* Tasks */}
+            <div>
+              {groupedTasks[status.value].map((task) => (
+                <TaskRow 
+                  key={task.id} 
+                  task={task} 
+                  onTaskClick={setSelectedTask}
+                />
+              ))}
+            </div>
           </div>
-          
-          {/* Tasks */}
-          <div>
-            {groupedTasks[status.value].map((task) => (
-              <TaskRow key={task.id} task={task} />
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+      
+      <TaskDialog
+        task={selectedTask}
+        open={!!selectedTask}
+        onOpenChange={(open) => !open && setSelectedTask(null)}
+      />
+    </>
   );
 }
