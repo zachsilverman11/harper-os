@@ -3,12 +3,11 @@
 import { useState } from 'react';
 import { Compass, Plus, Target, Trash2, CheckCircle2 } from 'lucide-react';
 import { useHarperStore } from '@/lib/store';
-import { LIFE_AREA_CONFIG, LifeArea, Goal, Milestone } from '@/lib/types';
+import { Goal, Milestone } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -25,15 +24,15 @@ import {
 } from '@/components/ui/select';
 
 export function GoalsView() {
-  const { goals, addGoal, updateGoal, deleteGoal } = useHarperStore();
+  const { businesses, goals, addGoal, updateGoal, deleteGoal, getBusinessById } = useHarperStore();
   const [newGoalOpen, setNewGoalOpen] = useState(false);
   const [newGoalTitle, setNewGoalTitle] = useState('');
-  const [newGoalArea, setNewGoalArea] = useState<LifeArea>('business');
+  const [newGoalBusinessId, setNewGoalBusinessId] = useState(businesses[0]?.id || '');
   const [newGoalDesc, setNewGoalDesc] = useState('');
 
   const handleAddGoal = () => {
-    if (!newGoalTitle.trim()) return;
-    addGoal(newGoalTitle.trim(), newGoalArea);
+    if (!newGoalTitle.trim() || !newGoalBusinessId) return;
+    addGoal(newGoalBusinessId, newGoalTitle.trim());
     setNewGoalTitle('');
     setNewGoalDesc('');
     setNewGoalOpen(false);
@@ -75,10 +74,11 @@ export function GoalsView() {
     });
   };
 
-  const groupedGoals = Object.entries(LIFE_AREA_CONFIG).reduce((acc, [area, config]) => {
-    acc[area as LifeArea] = goals.filter((g) => g.lifeArea === area);
+  // Group goals by business
+  const groupedGoals = businesses.reduce((acc, business) => {
+    acc[business.id] = goals.filter((g) => g.businessId === business.id);
     return acc;
-  }, {} as Record<LifeArea, Goal[]>);
+  }, {} as Record<string, Goal[]>);
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
@@ -116,14 +116,14 @@ export function GoalsView() {
                 placeholder="Why is this important?"
                 className="bg-slate-800 border-slate-700"
               />
-              <Select value={newGoalArea} onValueChange={(v) => setNewGoalArea(v as LifeArea)}>
+              <Select value={newGoalBusinessId} onValueChange={setNewGoalBusinessId}>
                 <SelectTrigger className="bg-slate-800 border-slate-700">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(LIFE_AREA_CONFIG).map(([key, config]) => (
-                    <SelectItem key={key} value={key}>
-                      {config.icon} {config.label}
+                  {businesses.map((business) => (
+                    <SelectItem key={business.id} value={business.id}>
+                      {business.icon} {business.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -139,20 +139,20 @@ export function GoalsView() {
         </Dialog>
       </div>
 
-      {/* Goals by Area */}
-      {Object.entries(groupedGoals).map(([area, areaGoals]) => {
-        if (areaGoals.length === 0) return null;
-        const config = LIFE_AREA_CONFIG[area as LifeArea];
+      {/* Goals by Business */}
+      {businesses.map((business) => {
+        const businessGoals = groupedGoals[business.id] || [];
+        if (businessGoals.length === 0) return null;
         
         return (
-          <div key={area} className="space-y-4">
+          <div key={business.id} className="space-y-4">
             <h2 className="text-lg font-semibold text-slate-300 flex items-center gap-2">
-              <span>{config.icon}</span>
-              {config.label}
+              <span>{business.icon}</span>
+              {business.name}
             </h2>
             
             <div className="grid gap-4 md:grid-cols-2">
-              {areaGoals.map((goal) => (
+              {businessGoals.map((goal) => (
                 <GoalCard
                   key={goal.id}
                   goal={goal}

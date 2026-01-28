@@ -1,16 +1,25 @@
 export type Priority = 'critical' | 'high' | 'normal' | 'low';
 export type TaskStatus = 'backlog' | 'this_week' | 'today' | 'in_progress' | 'done';
-export type LifeArea = 'business' | 'personal' | 'health' | 'family' | 'learning';
 export type RecurrenceType = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+// Top-level organizational units
+export interface Business {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  order: number;
+  type: 'business' | 'personal'; // Inspired Swim, Inspired Mortgage, or Personal
+}
 
 export interface Project {
   id: string;
+  businessId: string; // Links to parent business
   name: string;
   description?: string;
   color: string;
   order: number;
   archived: boolean;
-  lifeArea: LifeArea;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +55,7 @@ export interface Task {
   actualMinutes?: number;
   recurrence?: Recurrence;
   parentTaskId?: string; // For subtasks
+  harperAction?: boolean; // Can Harper take action on this?
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;
@@ -53,9 +63,9 @@ export interface Task {
 
 export interface Goal {
   id: string;
+  businessId: string;
   title: string;
   description?: string;
-  lifeArea: LifeArea;
   targetDate?: string;
   progress: number; // 0-100
   milestones: Milestone[];
@@ -105,14 +115,6 @@ export const PRIORITY_CONFIG: Record<Priority, { label: string; color: string; b
   high: { label: 'High', color: 'text-amber-400', bgColor: 'bg-amber-500/20 border-amber-500/30' },
   normal: { label: 'Normal', color: 'text-blue-400', bgColor: 'bg-blue-500/20 border-blue-500/30' },
   low: { label: 'Low', color: 'text-slate-400', bgColor: 'bg-slate-500/20 border-slate-500/30' },
-};
-
-export const LIFE_AREA_CONFIG: Record<LifeArea, { label: string; icon: string; color: string }> = {
-  business: { label: 'Business', icon: '💼', color: '#3b82f6' },
-  personal: { label: 'Personal', icon: '🏠', color: '#8b5cf6' },
-  health: { label: 'Health', icon: '💪', color: '#10b981' },
-  family: { label: 'Family', icon: '👨‍👩‍👧', color: '#ec4899' },
-  learning: { label: 'Learning', icon: '📚', color: '#f59e0b' },
 };
 
 export const PROJECT_COLORS = [

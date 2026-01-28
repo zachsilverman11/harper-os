@@ -3,30 +3,37 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { 
-  Project, Task, TaskStatus, Priority, Goal, DailyFocus, WeeklyPlan,
-  PROJECT_COLORS, LifeArea 
+  Business, Project, Task, TaskStatus, Priority, Goal, DailyFocus, WeeklyPlan,
+  PROJECT_COLORS
 } from './types';
-import { format, startOfWeek, isToday, isTomorrow, isPast, parseISO } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 interface HarperStore {
   // Data
+  businesses: Business[];
   projects: Project[];
   tasks: Task[];
   goals: Goal[];
-  dailyFocus: Record<string, DailyFocus>; // keyed by date
-  weeklyPlans: Record<string, WeeklyPlan>; // keyed by week start
+  dailyFocus: Record<string, DailyFocus>;
+  weeklyPlans: Record<string, WeeklyPlan>;
   
   // UI State
   selectedProjectId: string | null;
+  selectedBusinessId: string | null;
   view: 'board' | 'today' | 'goals' | 'weekly';
   searchQuery: string;
   quickCaptureOpen: boolean;
   
+  // Business actions
+  getBusinessById: (id: string) => Business | undefined;
+  getProjectsByBusiness: (businessId: string) => Project[];
+  
   // Project actions
-  addProject: (name: string, description?: string, lifeArea?: LifeArea) => void;
+  addProject: (businessId: string, name: string, description?: string) => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
   setSelectedProject: (id: string | null) => void;
+  setSelectedBusiness: (id: string | null) => void;
   
   // Task actions
   addTask: (projectId: string, title: string, status?: TaskStatus) => string;
@@ -36,7 +43,7 @@ interface HarperStore {
   duplicateTask: (taskId: string) => void;
   
   // Goal actions
-  addGoal: (title: string, lifeArea: LifeArea) => void;
+  addGoal: (businessId: string, title: string) => void;
   updateGoal: (id: string, updates: Partial<Goal>) => void;
   deleteGoal: (id: string) => void;
   
@@ -64,161 +71,254 @@ interface HarperStore {
   getUpcomingTasks: (days: number) => Task[];
   searchTasks: (query: string) => Task[];
   getTasksByAssignee: (assignee: string) => Task[];
-  getProjectsByLifeArea: (area: LifeArea) => Project[];
 }
 
 const generateId = () => crypto.randomUUID();
 
-const DEFAULT_PROJECTS: Project[] = [
+// ============================================
+// DEFAULT DATA - Businesses
+// ============================================
+const DEFAULT_BUSINESSES: Business[] = [
   {
     id: 'inspired-swim',
     name: 'Inspired Swim',
-    description: 'Private swim instruction company - 16+ locations across BC and Alberta',
-    color: PROJECT_COLORS[0],
+    icon: '🏊',
+    color: '#06b6d4',
     order: 0,
-    archived: false,
-    lifeArea: 'business',
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    type: 'business',
   },
   {
     id: 'inspired-mortgage',
     name: 'Inspired Mortgage',
-    description: '20+ years in Canadian residential mortgages',
-    color: PROJECT_COLORS[1],
+    icon: '🏠',
+    color: '#3b82f6',
     order: 1,
-    archived: false,
-    lifeArea: 'business',
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    type: 'business',
   },
   {
-    id: 'holly',
-    name: 'Holly',
-    description: 'SMS AI agent for home buyers - B2B2C platform',
-    color: PROJECT_COLORS[2],
+    id: 'personal',
+    name: 'Personal',
+    icon: '👤',
+    color: '#8b5cf6',
     order: 2,
-    archived: false,
-    lifeArea: 'business',
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    type: 'personal',
   },
+];
+
+// ============================================
+// DEFAULT DATA - Projects (nested under businesses)
+// ============================================
+const DEFAULT_PROJECTS: Project[] = [
+  // Inspired Swim projects
   {
     id: 'nata',
+    businessId: 'inspired-swim',
     name: 'Nata',
-    description: 'Booking and management platform for Inspired Swim',
-    color: PROJECT_COLORS[3],
-    order: 3,
+    description: 'Booking and management platform',
+    color: PROJECT_COLORS[0],
+    order: 0,
     archived: false,
-    lifeArea: 'business',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 'lod',
-    name: 'LOD',
-    description: 'Leads on Demand - Mortgage lead nurturing system',
-    color: PROJECT_COLORS[4],
-    order: 4,
-    archived: false,
-    lifeArea: 'business',
     createdAt: new Date(),
     updatedAt: new Date(),
   },
   {
     id: 'swim-hub',
+    businessId: 'inspired-swim',
     name: 'Swim Hub',
-    description: 'Marketing/ops dashboards for Inspired Swim',
-    color: PROJECT_COLORS[5],
-    order: 5,
+    description: 'Marketing/ops dashboards',
+    color: PROJECT_COLORS[1],
+    order: 1,
     archived: false,
-    lifeArea: 'business',
     createdAt: new Date(),
     updatedAt: new Date(),
   },
   {
     id: 'splash-zone',
+    businessId: 'inspired-swim',
     name: 'Splash Zone',
-    description: 'Instructor engagement app for reviews and content',
-    color: PROJECT_COLORS[6],
-    order: 6,
+    description: 'Instructor engagement & reviews',
+    color: PROJECT_COLORS[2],
+    order: 2,
     archived: false,
-    lifeArea: 'business',
     createdAt: new Date(),
     updatedAt: new Date(),
   },
   {
-    id: 'golf',
-    name: 'Golf',
-    description: 'Scratch golfer - working toward 170+ mph ball speed',
-    color: '#84cc16',
-    order: 7,
+    id: 'is-marketing',
+    businessId: 'inspired-swim',
+    name: 'Marketing',
+    description: 'Ads, retargeting, GBP',
+    color: PROJECT_COLORS[3],
+    order: 3,
     archived: false,
-    lifeArea: 'personal',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: 'is-operations',
+    businessId: 'inspired-swim',
+    name: 'Operations',
+    description: 'Team, locations, metrics',
+    color: PROJECT_COLORS[4],
+    order: 4,
+    archived: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  
+  // Inspired Mortgage projects
+  {
+    id: 'holly',
+    businessId: 'inspired-mortgage',
+    name: 'Holly',
+    description: 'SMS AI agent for home buyers',
+    color: PROJECT_COLORS[5],
+    order: 0,
+    archived: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: 'lod',
+    businessId: 'inspired-mortgage',
+    name: 'LOD',
+    description: 'Leads on Demand - nurturing system',
+    color: PROJECT_COLORS[6],
+    order: 1,
+    archived: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: 'im-operations',
+    businessId: 'inspired-mortgage',
+    name: 'Operations',
+    description: 'Team, leads, pipeline',
+    color: PROJECT_COLORS[7],
+    order: 2,
+    archived: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  
+  // Personal projects
+  {
+    id: 'golf',
+    businessId: 'personal',
+    name: 'Golf',
+    description: 'Scratch golfer - 170+ mph ball speed goal',
+    color: '#84cc16',
+    order: 0,
+    archived: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   },
   {
     id: 'health',
-    name: 'Health & Fitness',
-    description: 'Physical health, exercise, nutrition',
+    businessId: 'personal',
+    name: 'Health',
+    description: 'Fitness, nutrition, physio',
     color: '#10b981',
-    order: 8,
+    order: 1,
     archived: false,
-    lifeArea: 'health',
     createdAt: new Date(),
     updatedAt: new Date(),
   },
   {
-    id: 'personal',
-    name: 'Personal',
-    description: 'Personal projects and life admin',
-    color: '#8b5cf6',
-    order: 9,
+    id: 'harper-os',
+    businessId: 'personal',
+    name: 'Harper OS',
+    description: 'This productivity system',
+    color: '#ec4899',
+    order: 2,
     archived: false,
-    lifeArea: 'personal',
     createdAt: new Date(),
     updatedAt: new Date(),
   },
 ];
 
+// ============================================
+// DEFAULT DATA - Real tasks from Jan 28, 2026
+// ============================================
 const DEFAULT_TASKS: Task[] = [
+  // TODAY - Critical/High Priority
+  {
+    id: generateId(),
+    projectId: 'harper-os',
+    title: 'Set up Supabase for Harper OS',
+    description: 'Create project, get URL and anon key, share with Harper',
+    status: 'today',
+    priority: 'critical',
+    order: 0,
+    links: [{ type: 'url', url: 'https://supabase.com', label: 'Supabase' }],
+    tags: ['setup', 'harper'],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
   {
     id: generateId(),
     projectId: 'nata',
-    title: 'Review booking-v3 branch fixes',
-    description: 'Check the swimmers page and location picker fixes',
+    title: 'Review booking-v3 branch',
+    description: 'Check swimmers page and location picker fixes',
     status: 'today',
     priority: 'high',
-    order: 0,
-    links: [{ type: 'repo', url: 'https://github.com/InspiredSwim/nata', label: 'GitHub' }],
+    order: 1,
+    links: [{ type: 'repo', url: 'https://github.com', label: 'GitHub' }],
     tags: ['dev', 'review'],
     createdAt: new Date(),
     updatedAt: new Date(),
   },
   {
     id: generateId(),
-    projectId: 'personal',
-    title: 'Review Harper OS',
-    description: 'Test the new project management system',
+    projectId: 'harper-os',
+    title: 'Add Harper to Slack workspace',
+    description: 'Grant Harper access to Inspired Swim Slack',
     status: 'today',
-    priority: 'critical',
-    order: 1,
+    priority: 'high',
+    order: 2,
     links: [],
-    tags: ['harper'],
+    tags: ['access', 'setup'],
     createdAt: new Date(),
     updatedAt: new Date(),
   },
   {
     id: generateId(),
-    projectId: 'inspired-swim',
+    projectId: 'is-marketing',
+    title: 'Add Harper to GA4',
+    description: 'Add harper.clawdbot@gmail.com as viewer',
+    status: 'today',
+    priority: 'high',
+    order: 3,
+    links: [],
+    tags: ['access', 'analytics'],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: generateId(),
+    projectId: 'is-marketing',
+    title: 'Add Harper to Google Ads',
+    description: 'Add harper.clawdbot@gmail.com',
+    status: 'today',
+    priority: 'high',
+    order: 4,
+    links: [],
+    tags: ['access', 'ads'],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  
+  // THIS WEEK
+  {
+    id: generateId(),
+    projectId: 'is-operations',
     title: 'Review sales conversion rates',
     description: 'Check this week\'s conversion metrics with Cheri',
     status: 'this_week',
     priority: 'high',
     order: 0,
     links: [],
-    tags: ['metrics', 'cheri'],
+    tags: ['metrics'],
     assignee: 'cheri',
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -226,8 +326,8 @@ const DEFAULT_TASKS: Task[] = [
   {
     id: generateId(),
     projectId: 'holly',
-    title: 'Schedule demo with high-powered Realtors',
-    description: 'Line up validation demos for the SMS agent',
+    title: 'Schedule demo with Realtors',
+    description: 'Line up validation demos for SMS agent',
     status: 'this_week',
     priority: 'high',
     order: 1,
@@ -238,9 +338,25 @@ const DEFAULT_TASKS: Task[] = [
   },
   {
     id: generateId(),
+    projectId: 'is-marketing',
+    title: 'Install Meta Pixel',
+    description: 'Install pixel via GTM - free, starts building audiences',
+    status: 'this_week',
+    priority: 'normal',
+    order: 2,
+    links: [],
+    tags: ['marketing', 'setup'],
+    harperAction: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  
+  // BACKLOG
+  {
+    id: generateId(),
     projectId: 'lod',
     title: 'Test dark mode for night-shift advisors',
-    description: 'Verify the dark mode implementation works correctly',
+    description: 'Verify the dark mode implementation',
     status: 'backlog',
     priority: 'normal',
     order: 0,
@@ -251,15 +367,85 @@ const DEFAULT_TASKS: Task[] = [
   },
   {
     id: generateId(),
+    projectId: 'nata',
+    title: 'Fix conversion tracking',
+    description: 'Currently measures clicks, not bookings - critical for retargeting',
+    status: 'backlog',
+    priority: 'high',
+    order: 1,
+    links: [],
+    tags: ['dev', 'analytics'],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: generateId(),
+    projectId: 'is-marketing',
+    title: 'Execute Meta retargeting strategy',
+    description: 'After Nata 2.0 + tracking fixed + 500+ audience',
+    status: 'backlog',
+    priority: 'normal',
+    order: 2,
+    links: [],
+    tags: ['marketing', 'ads'],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: generateId(),
+    projectId: 'splash-zone',
+    title: 'Appeal Langley GBP suspension',
+    description: 'Location suspended - need to investigate and appeal',
+    status: 'backlog',
+    priority: 'normal',
+    order: 3,
+    links: [],
+    tags: ['gbp'],
+    harperAction: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: generateId(),
     projectId: 'golf',
     title: 'Practice session - driver speed',
     description: 'Work on ball speed with new technique',
     status: 'backlog',
-    priority: 'normal',
-    order: 1,
+    priority: 'low',
+    order: 4,
     links: [],
     tags: ['practice'],
     estimatedMinutes: 90,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  
+  // DONE (today's wins)
+  {
+    id: generateId(),
+    projectId: 'splash-zone',
+    title: 'Set up GBP API access',
+    description: 'OAuth flow with Zach\'s account - full access to 17 locations',
+    status: 'done',
+    priority: 'high',
+    order: 0,
+    links: [],
+    tags: ['gbp', 'api'],
+    completedAt: new Date(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: generateId(),
+    projectId: 'splash-zone',
+    title: 'Message Cheri about GBP strategy',
+    description: 'Sent intro in #harper Slack channel',
+    status: 'done',
+    priority: 'normal',
+    order: 1,
+    links: [],
+    tags: ['gbp', 'cheri'],
+    completedAt: new Date(),
     createdAt: new Date(),
     updatedAt: new Date(),
   },
@@ -268,27 +454,39 @@ const DEFAULT_TASKS: Task[] = [
 export const useHarperStore = create<HarperStore>()(
   persist(
     (set, get) => ({
+      businesses: DEFAULT_BUSINESSES,
       projects: DEFAULT_PROJECTS,
       tasks: DEFAULT_TASKS,
       goals: [],
       dailyFocus: {},
       weeklyPlans: {},
       selectedProjectId: null,
+      selectedBusinessId: null,
       view: 'board',
       searchQuery: '',
       quickCaptureOpen: false,
 
+      // Business actions
+      getBusinessById: (id) => get().businesses.find((b) => b.id === id),
+      
+      getProjectsByBusiness: (businessId) => {
+        return get().projects
+          .filter((p) => p.businessId === businessId && !p.archived)
+          .sort((a, b) => a.order - b.order);
+      },
+
       // Project actions
-      addProject: (name, description, lifeArea = 'business') => {
+      addProject: (businessId, name, description) => {
         const projects = get().projects;
+        const businessProjects = projects.filter((p) => p.businessId === businessId);
         const newProject: Project = {
           id: generateId(),
+          businessId,
           name,
           description,
-          color: PROJECT_COLORS[projects.length % PROJECT_COLORS.length],
-          order: projects.length,
+          color: PROJECT_COLORS[businessProjects.length % PROJECT_COLORS.length],
+          order: businessProjects.length,
           archived: false,
-          lifeArea,
           createdAt: new Date(),
           updatedAt: new Date(),
         };
@@ -311,6 +509,7 @@ export const useHarperStore = create<HarperStore>()(
       },
 
       setSelectedProject: (id) => set({ selectedProjectId: id }),
+      setSelectedBusiness: (id) => set({ selectedBusinessId: id }),
 
       // Task actions
       addTask: (projectId, title, status = 'backlog') => {
@@ -402,11 +601,11 @@ export const useHarperStore = create<HarperStore>()(
       },
 
       // Goal actions
-      addGoal: (title, lifeArea) => {
+      addGoal: (businessId, title) => {
         const newGoal: Goal = {
           id: generateId(),
+          businessId,
           title,
-          lifeArea,
           progress: 0,
           milestones: [],
           createdAt: new Date(),
@@ -544,10 +743,6 @@ export const useHarperStore = create<HarperStore>()(
 
       getTasksByAssignee: (assignee) => {
         return get().tasks.filter((t) => t.assignee === assignee);
-      },
-
-      getProjectsByLifeArea: (area) => {
-        return get().projects.filter((p) => p.lifeArea === area);
       },
     }),
     {
