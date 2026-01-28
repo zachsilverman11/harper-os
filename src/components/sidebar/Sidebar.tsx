@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SettingsPanel } from '@/components/settings';
 import { useState } from 'react';
 
 export function Sidebar() {
@@ -45,6 +46,7 @@ export function Sidebar() {
   const [addProjectBusinessId, setAddProjectBusinessId] = useState<string | null>(null);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const toggleBusiness = (id: string) => {
     setOpenBusinesses((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -220,11 +222,15 @@ export function Sidebar() {
         <Button
           variant="ghost"
           className="w-full justify-start text-slate-500 hover:text-slate-300"
+          onClick={() => setSettingsOpen(true)}
         >
           <Settings className="h-4 w-4 mr-2" />
           Settings
         </Button>
       </div>
+      
+      {/* Settings Panel */}
+      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       
       {/* Add Project Dialog */}
       <Dialog open={addProjectOpen} onOpenChange={setAddProjectOpen}>

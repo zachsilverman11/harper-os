@@ -37,9 +37,12 @@ interface HarperStore {
   // Business actions
   getBusinessById: (id: string) => Business | undefined;
   getProjectsByBusiness: (businessId: string) => Project[];
+  addBusiness: (name: string, icon: string, color?: string) => Promise<void>;
+  updateBusiness: (id: string, updates: Partial<Business>) => Promise<void>;
+  deleteBusiness: (id: string) => Promise<void>;
   
   // Project actions
-  addProject: (businessId: string, name: string, description?: string) => Promise<void>;
+  addProject: (businessId: string, name: string, description?: string, color?: string) => Promise<void>;
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
   setSelectedProject: (id: string | null) => void;
@@ -144,11 +147,53 @@ export const useHarperStore = create<HarperStore>()(
           .filter((p) => p.businessId === businessId && !p.archived)
           .sort((a, b) => a.order - b.order);
       },
+      
+      addBusiness: async (name, icon, color) => {
+        try {
+          const newBusiness = await db.createBusiness(name, icon, color);
+          set({ businesses: [...get().businesses, newBusiness] });
+        } catch (error) {
+          console.error('Failed to create business:', error);
+          set({ lastSyncError: error instanceof Error ? error.message : 'Failed to create business' });
+        }
+      },
+      
+      updateBusiness: async (id, updates) => {
+        // Optimistic update
+        set({
+          businesses: get().businesses.map((b) =>
+            b.id === id ? { ...b, ...updates } : b
+          ),
+        });
+        
+        try {
+          await db.updateBusiness(id, updates);
+        } catch (error) {
+          console.error('Failed to update business:', error);
+        }
+      },
+      
+      deleteBusiness: async (id) => {
+        // Optimistic update - remove business and all related projects/tasks
+        const projectIds = get().projects.filter(p => p.businessId === id).map(p => p.id);
+        set({
+          businesses: get().businesses.filter((b) => b.id !== id),
+          projects: get().projects.filter((p) => p.businessId !== id),
+          tasks: get().tasks.filter((t) => !projectIds.includes(t.projectId)),
+          goals: get().goals.filter((g) => g.businessId !== id),
+        });
+        
+        try {
+          await db.deleteBusiness(id);
+        } catch (error) {
+          console.error('Failed to delete business:', error);
+        }
+      },
 
       // Project actions
-      addProject: async (businessId, name, description) => {
+      addProject: async (businessId, name, description, color) => {
         try {
-          const newProject = await db.createProject(businessId, name, description);
+          const newProject = await db.createProject(businessId, name, description, color);
           set({ projects: [...get().projects, newProject] });
         } catch (error) {
           console.error('Failed to create project:', error);

@@ -103,6 +103,54 @@ export const db = {
     return (data || []).map(dbToBusiness);
   },
 
+  async createBusiness(name: string, icon: string, color?: string): Promise<Business> {
+    // Get max order
+    const { data: existing } = await supabase
+      .from('businesses')
+      .select('order')
+      .order('order', { ascending: false })
+      .limit(1);
+    
+    const nextOrder = existing && existing.length > 0 ? existing[0].order + 1 : 0;
+    
+    const { data, error } = await supabase
+      .from('businesses')
+      .insert({
+        name,
+        icon,
+        color: color || '#3b82f6',
+        order: nextOrder,
+        type: 'other',
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return dbToBusiness(data);
+  },
+
+  async updateBusiness(id: string, updates: Partial<Business>): Promise<void> {
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.icon !== undefined) dbUpdates.icon = updates.icon;
+    if (updates.color !== undefined) dbUpdates.color = updates.color;
+    if (updates.order !== undefined) dbUpdates.order = updates.order;
+    
+    const { error } = await supabase
+      .from('businesses')
+      .update(dbUpdates)
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  async deleteBusiness(id: string): Promise<void> {
+    // This will cascade delete projects and tasks due to FK constraints
+    const { error } = await supabase
+      .from('businesses')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  },
+
   // ---------- PROJECTS ----------
   async getProjects(): Promise<Project[]> {
     const { data, error } = await supabase
