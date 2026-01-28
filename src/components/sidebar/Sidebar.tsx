@@ -2,7 +2,7 @@
 
 import { 
   LayoutGrid, Target, Compass, Plus, 
-  ChevronDown, Settings, Search, Zap
+  ChevronDown, Settings, Search, Zap, X
 } from 'lucide-react';
 import { useHarperStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
@@ -22,9 +22,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SettingsPanel } from '@/components/settings';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const { 
     businesses,
     view, 
@@ -67,15 +72,44 @@ export function Sidebar() {
     setAddProjectOpen(true);
   };
 
+  // Close sidebar on navigation (mobile)
+  const handleNavigation = (callback: () => void) => {
+    callback();
+    onClose?.();
+  };
+
   return (
-    <aside className="w-64 h-full bg-slate-950 border-r border-slate-800 flex flex-col">
-      {/* Logo */}
-      <div className="p-4 flex items-center gap-2">
-        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center">
-          <Zap className="h-4 w-4 text-white" />
+    <>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+          onClick={onClose}
+        />
+      )}
+      
+      <aside className={`
+        w-64 h-full bg-slate-950 border-r border-slate-800 flex flex-col
+        fixed md:static inset-y-0 left-0 z-50
+        transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
+        {/* Logo */}
+        <div className="p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center">
+              <Zap className="h-4 w-4 text-white" />
+            </div>
+            <span className="font-bold text-lg text-slate-100">Harper OS</span>
+          </div>
+          {/* Close button - mobile only */}
+          <button
+            onClick={onClose}
+            className="md:hidden p-2 -mr-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-lg transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
-        <span className="font-bold text-lg text-slate-100">Harper OS</span>
-      </div>
 
       {/* Quick Actions */}
       <div className="px-3 space-y-1">

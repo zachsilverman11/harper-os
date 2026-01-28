@@ -9,11 +9,12 @@ import { QuickCapture } from '@/components/quick-capture/QuickCapture';
 import { SearchModal } from '@/components/search/SearchModal';
 import { useHarperStore } from '@/lib/store';
 import { KEYBOARD_SHORTCUTS } from '@/lib/types';
-import { LayoutGrid, List } from 'lucide-react';
+import { LayoutGrid, List, Menu, Search } from 'lucide-react';
 
 export default function Home() {
   const { view, setView, setQuickCaptureOpen, selectedProjectId, projects, boardViewMode, setBoardViewMode, initialize, isLoading, isInitialized } = useHarperStore();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Initialize from Supabase on mount
   useEffect(() => {
@@ -74,68 +75,88 @@ export default function Home() {
         </div>
       )}
       
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header for board view */}
-        {view === 'board' && (
-          <header className="h-14 border-b border-slate-800 flex items-center justify-between px-6">
-            <div className="flex items-center gap-3">
-              {selectedProject ? (
-                <>
-                  <div
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: selectedProject.color }}
-                  />
-                  <h1 className="text-lg font-semibold">{selectedProject.name}</h1>
-                  {selectedProject.description && (
-                    <span className="text-sm text-slate-500 hidden md:block">
-                      — {selectedProject.description}
-                    </span>
-                  )}
-                </>
-              ) : (
-                <h1 className="text-lg font-semibold">All Tasks</h1>
-              )}
-            </div>
+        {/* Header */}
+        <header className="h-14 border-b border-slate-800 flex items-center justify-between px-3 md:px-6">
+          <div className="flex items-center gap-2 md:gap-3">
+            {/* Hamburger menu - mobile only */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="md:hidden p-2 -ml-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
             
-            <div className="flex items-center gap-3">
-              {/* View toggle */}
+            {view === 'board' && (
+              <>
+                {selectedProject ? (
+                  <>
+                    <div
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: selectedProject.color }}
+                    />
+                    <h1 className="text-base md:text-lg font-semibold truncate max-w-[150px] md:max-w-none">{selectedProject.name}</h1>
+                    {selectedProject.description && (
+                      <span className="text-sm text-slate-500 hidden md:block">
+                        — {selectedProject.description}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <h1 className="text-base md:text-lg font-semibold">All Tasks</h1>
+                )}
+              </>
+            )}
+            {view === 'today' && (
+              <h1 className="text-base md:text-lg font-semibold">Today</h1>
+            )}
+            {view === 'goals' && (
+              <h1 className="text-base md:text-lg font-semibold">Goals</h1>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2 md:gap-3">
+            {/* View toggle - board view only */}
+            {view === 'board' && (
               <div className="flex items-center bg-slate-900 rounded-lg border border-slate-800 p-1">
                 <button
                   onClick={() => setBoardViewMode('list')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-sm transition-colors ${
+                  className={`flex items-center gap-1.5 px-2 md:px-2.5 py-1 rounded text-sm transition-colors ${
                     boardViewMode === 'list' 
                       ? 'bg-slate-800 text-slate-100' 
                       : 'text-slate-500 hover:text-slate-300'
                   }`}
                 >
                   <List className="h-4 w-4" />
-                  List
+                  <span className="hidden md:inline">List</span>
                 </button>
                 <button
                   onClick={() => setBoardViewMode('kanban')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-sm transition-colors ${
+                  className={`flex items-center gap-1.5 px-2 md:px-2.5 py-1 rounded text-sm transition-colors ${
                     boardViewMode === 'kanban' 
                       ? 'bg-slate-800 text-slate-100' 
                       : 'text-slate-500 hover:text-slate-300'
                   }`}
                 >
                   <LayoutGrid className="h-4 w-4" />
-                  Board
+                  <span className="hidden md:inline">Board</span>
                 </button>
               </div>
-              
-              <button
-                onClick={() => setSearchOpen(true)}
-                className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-300 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800"
-              >
-                Search...
-                <kbd className="text-xs bg-slate-800 px-1.5 py-0.5 rounded">/</kbd>
-              </button>
-            </div>
-          </header>
-        )}
+            )}
+            
+            {/* Search button - icon only on mobile */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-300 bg-slate-900 p-2 md:px-3 md:py-1.5 rounded-lg border border-slate-800"
+            >
+              <Search className="h-4 w-4 md:hidden" />
+              <span className="hidden md:inline">Search...</span>
+              <kbd className="hidden md:inline text-xs bg-slate-800 px-1.5 py-0.5 rounded">/</kbd>
+            </button>
+          </div>
+        </header>
 
         {/* Main content */}
         <div className="flex-1 overflow-auto">
