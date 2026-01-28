@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { TaskDialog } from '@/components/kanban/TaskDialog';
 
 export function TodayView() {
   const { 
@@ -31,6 +32,7 @@ export function TodayView() {
   );
 
   const [notes, setNotes] = useState(dailyFocus?.notes || '');
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const handleToggleComplete = (task: Task) => {
     updateTask(task.id, {
@@ -139,14 +141,18 @@ export function TodayView() {
               return (
                 <div
                   key={task.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors cursor-pointer ${
                     isCompleted 
                       ? 'bg-slate-800/50 opacity-60' 
                       : 'bg-slate-800 hover:bg-slate-700/50'
                   }`}
+                  onClick={() => setSelectedTask(task)}
                 >
                   <button
-                    onClick={() => handleToggleComplete(task)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleComplete(task);
+                    }}
                     className={`h-5 w-5 rounded-full border-2 transition-colors flex items-center justify-center ${
                       isCompleted
                         ? 'bg-emerald-500 border-emerald-500'
@@ -237,6 +243,12 @@ export function TodayView() {
           </CardContent>
         </Card>
       )}
+      
+      <TaskDialog
+        task={selectedTask}
+        open={!!selectedTask}
+        onOpenChange={(open) => !open && setSelectedTask(null)}
+      />
     </div>
   );
 }
