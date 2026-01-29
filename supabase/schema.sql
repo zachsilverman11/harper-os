@@ -35,7 +35,7 @@ create table if not exists tasks (
   project_id uuid references projects(id) on delete cascade,
   title text not null,
   description text,
-  status text not null default 'backlog' check (status in ('backlog', 'this_week', 'today', 'in_progress', 'done')),
+  status text not null default 'backlog' check (status in ('backlog', 'this_week', 'today', 'in_progress', 'needs_review', 'done')),
   priority text not null default 'normal' check (priority in ('critical', 'high', 'normal', 'low')),
   due_date date,
   due_time time,
