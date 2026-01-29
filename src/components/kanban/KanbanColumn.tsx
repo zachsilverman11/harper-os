@@ -35,6 +35,7 @@ export function KanbanColumn({
     this_week: 'border-blue-500/30',
     today: 'border-amber-500/30',
     in_progress: 'border-violet-500/30',
+    needs_review: 'border-orange-500/30',
     done: 'border-emerald-500/30',
   };
 
