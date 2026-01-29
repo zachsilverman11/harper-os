@@ -143,6 +143,42 @@ export const TEAM_MEMBERS = [
 // Alias for backwards compat
 export const ASSIGNEES = TEAM_MEMBERS;
 
+// Document types
+export type DocType = 'report' | 'strategy' | 'playbook' | 'analysis' | 'brief';
+export type DocStatus = 'draft' | 'published' | 'reviewed' | 'archived';
+
+export interface Document {
+  id: string;
+  projectId?: string;
+  businessId: string;
+  title: string;
+  content: string;
+  docType: DocType;
+  status: DocStatus;
+  author: string;
+  summary?: string;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt?: Date;
+  reviewedAt?: Date;
+}
+
+export const DOC_TYPE_CONFIG: Record<DocType, { label: string; color: string; bgColor: string; icon: string }> = {
+  report: { label: 'Report', color: 'text-blue-400', bgColor: 'bg-blue-500/20 border-blue-500/30', icon: '📊' },
+  strategy: { label: 'Strategy', color: 'text-violet-400', bgColor: 'bg-violet-500/20 border-violet-500/30', icon: '🎯' },
+  playbook: { label: 'Playbook', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20 border-emerald-500/30', icon: '📋' },
+  analysis: { label: 'Analysis', color: 'text-amber-400', bgColor: 'bg-amber-500/20 border-amber-500/30', icon: '🔍' },
+  brief: { label: 'Brief', color: 'text-cyan-400', bgColor: 'bg-cyan-500/20 border-cyan-500/30', icon: '📝' },
+};
+
+export const DOC_STATUS_CONFIG: Record<DocStatus, { label: string; color: string; bgColor: string; icon: string }> = {
+  draft: { label: 'Draft', color: 'text-slate-400', bgColor: 'bg-slate-500/20 border-slate-500/30', icon: '✏️' },
+  published: { label: 'Published', color: 'text-green-400', bgColor: 'bg-green-500/20 border-green-500/30', icon: '✅' },
+  reviewed: { label: 'Reviewed', color: 'text-blue-400', bgColor: 'bg-blue-500/20 border-blue-500/30', icon: '👁️' },
+  archived: { label: 'Archived', color: 'text-slate-500', bgColor: 'bg-slate-600/20 border-slate-600/30', icon: '📦' },
+};
+
 // For keyboard shortcuts
 export const KEYBOARD_SHORTCUTS = {
   newTask: 'n',
@@ -150,6 +186,7 @@ export const KEYBOARD_SHORTCUTS = {
   today: 't',
   board: 'b',
   goals: 'g',
+  documents: 'd',
   quickCapture: 'c',
   escape: 'Escape',
 };

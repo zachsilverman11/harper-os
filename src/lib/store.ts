@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { 
   Business, Project, Task, TaskStatus, Priority, Goal, DailyFocus, WeeklyPlan,
-  PROJECT_COLORS, BoardViewMode
+  PROJECT_COLORS, BoardViewMode, Document, DocType, DocStatus
 } from './types';
 import { db } from './db';
 import { format, parseISO } from 'date-fns';
@@ -15,6 +15,7 @@ interface HarperStore {
   projects: Project[];
   tasks: Task[];
   goals: Goal[];
+  documents: Document[];
   dailyFocus: Record<string, DailyFocus>;
   weeklyPlans: Record<string, WeeklyPlan>;
   
@@ -26,7 +27,7 @@ interface HarperStore {
   // UI State
   selectedProjectId: string | null;
   selectedBusinessId: string | null;
-  view: 'board' | 'today' | 'goals' | 'weekly';
+  view: 'board' | 'today' | 'goals' | 'weekly' | 'documents';
   boardViewMode: BoardViewMode;
   searchQuery: string;
   quickCaptureOpen: boolean;
@@ -60,6 +61,24 @@ interface HarperStore {
   updateGoal: (id: string, updates: Partial<Goal>) => Promise<void>;
   deleteGoal: (id: string) => Promise<void>;
   
+  // Document actions
+  addDocument: (doc: {
+    businessId: string;
+    title: string;
+    content?: string;
+    docType?: DocType;
+    status?: DocStatus;
+    author?: string;
+    summary?: string;
+    tags?: string[];
+    projectId?: string;
+  }) => Promise<void>;
+  updateDocument: (id: string, updates: Partial<Document>) => Promise<void>;
+  deleteDocument: (id: string) => Promise<void>;
+  getDocumentsByProject: (projectId: string) => Document[];
+  getDocumentsByBusiness: (businessId: string) => Document[];
+  getDocumentById: (id: string) => Document | undefined;
+  
   // Daily Focus actions
   getDailyFocus: (date: string) => DailyFocus | undefined;
   setDailyFocus: (date: string, focus: Partial<DailyFocus>) => Promise<void>;
@@ -71,7 +90,7 @@ interface HarperStore {
   setWeeklyPlan: (weekStart: string, plan: Partial<WeeklyPlan>) => void;
   
   // UI actions
-  setView: (view: 'board' | 'today' | 'goals' | 'weekly') => void;
+  setView: (view: 'board' | 'today' | 'goals' | 'weekly' | 'documents') => void;
   setBoardViewMode: (mode: BoardViewMode) => void;
   setSearchQuery: (query: string) => void;
   setQuickCaptureOpen: (open: boolean) => void;
@@ -96,6 +115,7 @@ export const useHarperStore = create<HarperStore>()(
       projects: [],
       tasks: [],
       goals: [],
+      documents: [],
       dailyFocus: {},
       weeklyPlans: {},
       isLoading: false,
@@ -114,11 +134,12 @@ export const useHarperStore = create<HarperStore>()(
         
         set({ isLoading: true, lastSyncError: null });
         try {
-          const [businesses, projects, tasks, goals] = await Promise.all([
+          const [businesses, projects, tasks, goals, documents] = await Promise.all([
             db.getBusinesses(),
             db.getProjects(),
             db.getTasks(),
             db.getGoals(),
+            db.getDocuments(),
           ]);
           
           set({ 
@@ -126,6 +147,7 @@ export const useHarperStore = create<HarperStore>()(
             projects, 
             tasks, 
             goals,
+            documents,
             isLoading: false, 
             isInitialized: true 
           });
@@ -382,6 +404,51 @@ export const useHarperStore = create<HarperStore>()(
         }
       },
 
+      // Document actions
+      addDocument: async (doc) => {
+        try {
+          const newDoc = await db.createDocument(doc);
+          set({ documents: [newDoc, ...get().documents] });
+        } catch (error) {
+          console.error('Failed to create document:', error);
+        }
+      },
+
+      updateDocument: async (id, updates) => {
+        // Optimistic update
+        set({
+          documents: get().documents.map((d) =>
+            d.id === id ? { ...d, ...updates, updatedAt: new Date() } : d
+          ),
+        });
+        
+        try {
+          await db.updateDocument(id, updates);
+        } catch (error) {
+          console.error('Failed to update document:', error);
+        }
+      },
+
+      deleteDocument: async (id) => {
+        set({ documents: get().documents.filter((d) => d.id !== id) });
+        
+        try {
+          await db.deleteDocument(id);
+        } catch (error) {
+          console.error('Failed to delete document:', error);
+        }
+      },
+
+      getDocumentsByProject: (projectId) => {
+        return get().documents.filter((d) => d.projectId === projectId);
+      },
+
+      getDocumentsByBusiness: (businessId) => {
+        return get().documents.filter((d) => d.businessId === businessId);
+      },
+
+      getDocumentById: (id) => get().documents.find((d) => d.id === id),
+
       // Daily Focus
       getDailyFocus: (date) => get().dailyFocus[date],
       
@@ -527,6 +594,7 @@ export const useHarperStore = create<HarperStore>()(
         projects: state.projects,
         tasks: state.tasks,
         goals: state.goals,
+        documents: state.documents,
       }),
     }
   )

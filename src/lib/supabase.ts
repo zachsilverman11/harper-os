@@ -102,3 +102,20 @@ export interface DbWeeklyPlan {
   created_at: string;
   updated_at: string;
 }
+
+export interface DbDocument {
+  id: string;
+  project_id: string | null;
+  business_id: string;
+  title: string;
+  content: string;
+  doc_type: string;
+  status: string;
+  author: string;
+  summary: string | null;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+  published_at: string | null;
+  reviewed_at: string | null;
+}
