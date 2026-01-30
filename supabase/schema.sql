@@ -97,7 +97,7 @@ create table if not exists documents (
   business_id uuid not null references businesses(id) on delete cascade,
   title text not null,
   content text not null default '',
-  doc_type text not null default 'report' check (doc_type in ('report', 'strategy', 'playbook', 'analysis', 'brief')),
+  doc_type text not null default 'report' check (doc_type in ('plan', 'report', 'strategy', 'playbook', 'analysis', 'brief')),
   status text not null default 'draft' check (status in ('draft', 'published', 'reviewed', 'archived')),
   author text not null default 'harper',
   summary text,

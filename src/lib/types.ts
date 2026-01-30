@@ -145,7 +145,7 @@ export const TEAM_MEMBERS = [
 export const ASSIGNEES = TEAM_MEMBERS;
 
 // Document types
-export type DocType = 'report' | 'strategy' | 'playbook' | 'analysis' | 'brief';
+export type DocType = 'plan' | 'report' | 'strategy' | 'playbook' | 'analysis' | 'brief';
 export type DocStatus = 'draft' | 'published' | 'reviewed' | 'archived';
 
 export interface Document {
@@ -166,6 +166,7 @@ export interface Document {
 }
 
 export const DOC_TYPE_CONFIG: Record<DocType, { label: string; color: string; bgColor: string; icon: string }> = {
+  plan: { label: 'Master Plan', color: 'text-orange-400', bgColor: 'bg-orange-500/20 border-orange-500/30', icon: '🗺️' },
   report: { label: 'Report', color: 'text-blue-400', bgColor: 'bg-blue-500/20 border-blue-500/30', icon: '📊' },
   strategy: { label: 'Strategy', color: 'text-violet-400', bgColor: 'bg-violet-500/20 border-violet-500/30', icon: '🎯' },
   playbook: { label: 'Playbook', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20 border-emerald-500/30', icon: '📋' },

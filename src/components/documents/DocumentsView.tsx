@@ -76,7 +76,11 @@ export function DocumentsView() {
     }
   };
 
-  const docTypes: DocType[] = ['report', 'strategy', 'playbook', 'analysis', 'brief'];
+  const docTypes: DocType[] = ['plan', 'report', 'strategy', 'playbook', 'analysis', 'brief'];
+
+  // Separate plans from other documents for prominent display
+  const masterPlans = filteredDocs.filter(d => d.docType === 'plan');
+  const otherDocs = filteredDocs.filter(d => d.docType !== 'plan');
   const docStatuses: DocStatus[] = ['draft', 'published', 'reviewed', 'archived'];
 
   const activeFilters = [filterBusiness, filterProject, filterType, filterStatus].filter(f => f !== 'all').length;
@@ -210,18 +214,53 @@ export function DocumentsView() {
         )}
       </div>
 
-      {/* Document Grid */}
-      {filteredDocs.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredDocs.map(doc => (
-            <DocumentCard
-              key={doc.id}
-              document={doc}
-              onClick={() => handleCardClick(doc)}
-            />
-          ))}
+      {/* Master Plans Section */}
+      {masterPlans.length > 0 && filterType !== 'all' && filterType !== 'plan' ? null : masterPlans.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-lg">🗺️</span>
+            <h2 className="text-lg font-semibold text-slate-100">Master Plans</h2>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-400">
+              {masterPlans.length} plan{masterPlans.length !== 1 ? 's' : ''}
+            </span>
+            {masterPlans.some(d => d.status === 'draft') && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400">
+                🔍 {masterPlans.filter(d => d.status === 'draft').length} need review
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {masterPlans.map(doc => (
+              <DocumentCard
+                key={doc.id}
+                document={doc}
+                onClick={() => handleCardClick(doc)}
+              />
+            ))}
+          </div>
         </div>
-      ) : (
+      )}
+
+      {/* Other Documents */}
+      {otherDocs.length > 0 ? (
+        <div>
+          {masterPlans.length > 0 && (filterType === 'all' || filterType === 'plan') && (
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-lg">📚</span>
+              <h2 className="text-lg font-semibold text-slate-100">Documents & Reports</h2>
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {otherDocs.map(doc => (
+              <DocumentCard
+                key={doc.id}
+                document={doc}
+                onClick={() => handleCardClick(doc)}
+              />
+            ))}
+          </div>
+        </div>
+      ) : masterPlans.length === 0 && otherDocs.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="h-16 w-16 rounded-2xl bg-slate-800 flex items-center justify-center mb-4">
             <FileText className="h-8 w-8 text-slate-600" />
@@ -249,7 +288,7 @@ export function DocumentsView() {
             </Button>
           )}
         </div>
-      )}
+      ) : null}
 
       {/* Document Viewer Modal */}
       <DocumentViewer
