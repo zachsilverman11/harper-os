@@ -1,5 +1,5 @@
-import { supabase, DbBusiness, DbProject, DbTask, DbTaskLink, DbGoal, DbMilestone, DbDailyFocus } from './supabase';
-import { Business, Project, Task, TaskStatus, Priority, Goal, DailyFocus, TaskLink } from './types';
+import { supabase, DbBusiness, DbProject, DbTask, DbTaskLink, DbGoal, DbMilestone, DbDailyFocus, DbDocument } from './supabase';
+import { Business, Project, Task, TaskStatus, Priority, Goal, DailyFocus, TaskLink, Document, DocType, DocStatus } from './types';
 
 // ===========================================
 // TRANSFORM HELPERS (DB <-> App)
@@ -85,6 +85,25 @@ function dbToDailyFocus(db: DbDailyFocus): DailyFocus {
     energyLevel: db.energy_level || undefined,
     createdAt: new Date(db.created_at),
     updatedAt: new Date(db.updated_at),
+  };
+}
+
+function dbToDocument(db: DbDocument): Document {
+  return {
+    id: db.id,
+    projectId: db.project_id || undefined,
+    businessId: db.business_id,
+    title: db.title,
+    content: db.content,
+    docType: db.doc_type as DocType,
+    status: db.status as DocStatus,
+    author: db.author,
+    summary: db.summary || undefined,
+    tags: db.tags || [],
+    createdAt: new Date(db.created_at),
+    updatedAt: new Date(db.updated_at),
+    publishedAt: db.published_at ? new Date(db.published_at) : undefined,
+    reviewedAt: db.reviewed_at ? new Date(db.reviewed_at) : undefined,
   };
 }
 
@@ -375,6 +394,95 @@ export const db = {
     const { error } = await supabase
       .from('daily_focus')
       .upsert(dbUpdates, { onConflict: 'date' });
+    if (error) throw error;
+  },
+
+  // ---------- DOCUMENTS ----------
+  async getDocuments(): Promise<Document[]> {
+    const { data, error } = await supabase
+      .from('documents')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(dbToDocument);
+  },
+
+  async getDocumentsByProject(projectId: string): Promise<Document[]> {
+    const { data, error } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(dbToDocument);
+  },
+
+  async getDocumentsByBusiness(businessId: string): Promise<Document[]> {
+    const { data, error } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('business_id', businessId)
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(dbToDocument);
+  },
+
+  async createDocument(doc: {
+    businessId: string;
+    title: string;
+    content?: string;
+    docType?: DocType;
+    status?: DocStatus;
+    author?: string;
+    summary?: string;
+    tags?: string[];
+    projectId?: string;
+  }): Promise<Document> {
+    const { data, error } = await supabase
+      .from('documents')
+      .insert({
+        business_id: doc.businessId,
+        title: doc.title,
+        content: doc.content || '',
+        doc_type: doc.docType || 'report',
+        status: doc.status || 'draft',
+        author: doc.author || 'harper',
+        summary: doc.summary || null,
+        tags: doc.tags || [],
+        project_id: doc.projectId || null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return dbToDocument(data);
+  },
+
+  async updateDocument(id: string, updates: Partial<Document>): Promise<void> {
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.title !== undefined) dbUpdates.title = updates.title;
+    if (updates.content !== undefined) dbUpdates.content = updates.content;
+    if (updates.docType !== undefined) dbUpdates.doc_type = updates.docType;
+    if (updates.status !== undefined) dbUpdates.status = updates.status;
+    if (updates.author !== undefined) dbUpdates.author = updates.author;
+    if (updates.summary !== undefined) dbUpdates.summary = updates.summary || null;
+    if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
+    if (updates.projectId !== undefined) dbUpdates.project_id = updates.projectId || null;
+    if (updates.publishedAt !== undefined) dbUpdates.published_at = updates.publishedAt?.toISOString() || null;
+    if (updates.reviewedAt !== undefined) dbUpdates.reviewed_at = updates.reviewedAt?.toISOString() || null;
+    dbUpdates.updated_at = new Date().toISOString();
+
+    const { error } = await supabase
+      .from('documents')
+      .update(dbUpdates)
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  async deleteDocument(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('documents')
+      .delete()
+      .eq('id', id);
     if (error) throw error;
   },
 };

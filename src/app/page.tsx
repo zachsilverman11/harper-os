@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/sidebar/Sidebar';
 import { KanbanBoard, TaskList } from '@/components/kanban';
 import { TodayView } from '@/components/today/TodayView';
 import { GoalsView } from '@/components/goals/GoalsView';
+import { DocumentsView } from '@/components/documents';
 import { QuickCapture } from '@/components/quick-capture/QuickCapture';
 import { SearchModal } from '@/components/search/SearchModal';
 import { useHarperStore } from '@/lib/store';
@@ -47,6 +48,10 @@ export default function Home() {
         case KEYBOARD_SHORTCUTS.goals:
           e.preventDefault();
           setView('goals');
+          break;
+        case KEYBOARD_SHORTCUTS.documents:
+          e.preventDefault();
+          setView('documents');
           break;
         case KEYBOARD_SHORTCUTS.newTask:
           e.preventDefault();
@@ -115,6 +120,9 @@ export default function Home() {
             {view === 'goals' && (
               <h1 className="text-base md:text-lg font-semibold">Goals</h1>
             )}
+            {view === 'documents' && (
+              <h1 className="text-base md:text-lg font-semibold">Documents</h1>
+            )}
           </div>
           
           <div className="flex items-center gap-2 md:gap-3">
@@ -167,6 +175,7 @@ export default function Home() {
           )}
           {view === 'today' && <TodayView />}
           {view === 'goals' && <GoalsView />}
+          {view === 'documents' && <DocumentsView />}
         </div>
       </div>
 

@@ -31,6 +31,7 @@ export function KanbanColumn({
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   const columnColors: Record<TaskStatus, string> = {
+    idea: 'border-yellow-500/30',
     backlog: 'border-slate-700/50',
     this_week: 'border-blue-500/30',
     today: 'border-amber-500/30',

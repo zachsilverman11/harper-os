@@ -35,7 +35,7 @@ create table if not exists tasks (
   project_id uuid references projects(id) on delete cascade,
   title text not null,
   description text,
-  status text not null default 'backlog' check (status in ('backlog', 'this_week', 'today', 'in_progress', 'needs_review', 'done')),
+  status text not null default 'backlog' check (status in ('idea', 'backlog', 'this_week', 'today', 'in_progress', 'needs_review', 'done')),
   priority text not null default 'normal' check (priority in ('critical', 'high', 'normal', 'low')),
   due_date date,
   due_time time,
@@ -90,6 +90,24 @@ create table if not exists weekly_plans (
   updated_at timestamptz not null default now()
 );
 
+-- Documents table
+create table if not exists documents (
+  id uuid primary key default uuid_generate_v4(),
+  project_id uuid references projects(id) on delete set null,
+  business_id uuid not null references businesses(id) on delete cascade,
+  title text not null,
+  content text not null default '',
+  doc_type text not null default 'report' check (doc_type in ('plan', 'report', 'strategy', 'playbook', 'analysis', 'brief')),
+  status text not null default 'draft' check (status in ('draft', 'published', 'reviewed', 'archived')),
+  author text not null default 'harper',
+  summary text,
+  tags text[] not null default '{}',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  published_at timestamptz,
+  reviewed_at timestamptz
+);
+
 -- Indexes for performance
 create index if not exists idx_projects_business_id on projects(business_id);
 create index if not exists idx_tasks_project_id on tasks(project_id);
@@ -98,6 +116,9 @@ create index if not exists idx_tasks_assignee on tasks(assignee);
 create index if not exists idx_goals_business_id on goals(business_id);
 create index if not exists idx_daily_focus_date on daily_focus(date);
 create index if not exists idx_weekly_plans_week_start on weekly_plans(week_start);
+create index if not exists idx_documents_business_id on documents(business_id);
+create index if not exists idx_documents_project_id on documents(project_id);
+create index if not exists idx_documents_doc_type on documents(doc_type);
 
 -- Row Level Security (RLS) - disabled for now, enable when adding auth
 alter table businesses enable row level security;
@@ -106,6 +127,7 @@ alter table tasks enable row level security;
 alter table goals enable row level security;
 alter table daily_focus enable row level security;
 alter table weekly_plans enable row level security;
+alter table documents enable row level security;
 
 -- Policies - allow all for now (single user system)
 create policy "Allow all for businesses" on businesses for all using (true);
@@ -114,6 +136,7 @@ create policy "Allow all for tasks" on tasks for all using (true);
 create policy "Allow all for goals" on goals for all using (true);
 create policy "Allow all for daily_focus" on daily_focus for all using (true);
 create policy "Allow all for weekly_plans" on weekly_plans for all using (true);
+create policy "Allow all for documents" on documents for all using (true);
 
 -- Updated_at trigger function
 create or replace function update_updated_at_column()
@@ -131,3 +154,4 @@ create trigger update_tasks_updated_at before update on tasks for each row execu
 create trigger update_goals_updated_at before update on goals for each row execute function update_updated_at_column();
 create trigger update_daily_focus_updated_at before update on daily_focus for each row execute function update_updated_at_column();
 create trigger update_weekly_plans_updated_at before update on weekly_plans for each row execute function update_updated_at_column();
+create trigger update_documents_updated_at before update on documents for each row execute function update_updated_at_column();

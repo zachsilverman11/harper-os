@@ -2,7 +2,7 @@
 
 import { 
   LayoutGrid, Target, Compass, Plus, 
-  ChevronDown, Settings, Search, Zap, X
+  ChevronDown, Settings, Search, Zap, X, FileText
 } from 'lucide-react';
 import { useHarperStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
@@ -181,6 +181,19 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           <Compass className="h-4 w-4 mr-2" />
           Goals
           <span className="ml-auto text-xs text-slate-600 hidden md:inline">G</span>
+        </Button>
+        <Button
+          variant={view === 'documents' ? 'secondary' : 'ghost'}
+          className={`w-full justify-start ${
+            view === 'documents' 
+              ? 'bg-blue-500/20 text-blue-400' 
+              : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
+          }`}
+          onClick={() => handleNavigation(() => setView('documents'))}
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          Documents
+          <span className="ml-auto text-xs text-slate-600 hidden md:inline">D</span>
         </Button>
       </nav>
 

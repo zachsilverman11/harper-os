@@ -35,7 +35,7 @@ export interface DbTask {
   parent_task_id: string | null;
   title: string;
   description: string | null;
-  status: 'backlog' | 'this_week' | 'today' | 'in_progress' | 'needs_review' | 'done';
+  status: 'idea' | 'backlog' | 'this_week' | 'today' | 'in_progress' | 'needs_review' | 'done';
   priority: 'critical' | 'high' | 'normal' | 'low';
   due_date: string | null;
   due_time: string | null;
@@ -101,4 +101,21 @@ export interface DbWeeklyPlan {
   notes: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface DbDocument {
+  id: string;
+  project_id: string | null;
+  business_id: string;
+  title: string;
+  content: string;
+  doc_type: string;
+  status: string;
+  author: string;
+  summary: string | null;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+  published_at: string | null;
+  reviewed_at: string | null;
 }
