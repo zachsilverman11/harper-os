@@ -135,7 +135,7 @@ export function TodayView() {
           ) : (
             todayTasks.map((task) => {
               const project = getProject(task.projectId);
-              const priorityConfig = PRIORITY_CONFIG[task.priority];
+              const priorityConfig = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.normal;
               const isCompleted = task.status === 'done';
               
               return (

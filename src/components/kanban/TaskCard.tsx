@@ -28,7 +28,7 @@ interface TaskCardProps {
 export function TaskCard({ task, onClick }: TaskCardProps) {
   const { projects, deleteTask, updateTask, duplicateTask } = useHarperStore();
   const project = projects.find((p) => p.id === task.projectId);
-  const priorityConfig = PRIORITY_CONFIG[task.priority];
+  const priorityConfig = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.normal;
   const assignee = TEAM_MEMBERS.find((m) => m.id === task.assignee);
 
   const {

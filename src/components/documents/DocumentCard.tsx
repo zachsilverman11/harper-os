@@ -16,8 +16,8 @@ export function DocumentCard({ document, onClick }: DocumentCardProps) {
   
   const project = document.projectId ? projects.find(p => p.id === document.projectId) : null;
   const business = businesses.find(b => b.id === document.businessId);
-  const typeConfig = DOC_TYPE_CONFIG[document.docType];
-  const statusConfig = DOC_STATUS_CONFIG[document.status];
+  const typeConfig = DOC_TYPE_CONFIG[document.docType] || DOC_TYPE_CONFIG.brief;
+  const statusConfig = DOC_STATUS_CONFIG[document.status] || DOC_STATUS_CONFIG.draft;
 
   return (
     <div
