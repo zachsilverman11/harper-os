@@ -32,11 +32,9 @@ export function KanbanColumn({
 
   const columnColors: Record<TaskStatus, string> = {
     idea: 'border-yellow-500/30',
-    backlog: 'border-slate-700/50',
-    this_week: 'border-blue-500/30',
-    today: 'border-amber-500/30',
-    in_progress: 'border-violet-500/30',
-    needs_review: 'border-orange-500/30',
+    todo: 'border-slate-700/50',
+    doing: 'border-violet-500/30',
+    review: 'border-orange-500/30',
     done: 'border-emerald-500/30',
   };
 

@@ -32,7 +32,7 @@ export function QuickCapture() {
   
   const [title, setTitle] = useState('');
   const [projectId, setProjectId] = useState(selectedProjectId || projects[0]?.id || '');
-  const [status, setStatus] = useState<TaskStatus>('backlog');
+  const [status, setStatus] = useState<TaskStatus>('todo');
   const [priority, setPriority] = useState<Priority>('normal');
   const [showNotes, setShowNotes] = useState(false);
   const [notes, setNotes] = useState('');

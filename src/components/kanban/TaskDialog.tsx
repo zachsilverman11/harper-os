@@ -42,7 +42,7 @@ export function TaskDialog({ task, open, onOpenChange }: TaskDialogProps) {
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [priority, setPriority] = useState<Priority>('normal');
-  const [status, setStatus] = useState<TaskStatus>('backlog');
+  const [status, setStatus] = useState<TaskStatus>('todo');
   const [projectId, setProjectId] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [estimatedMinutes, setEstimatedMinutes] = useState<number | undefined>();

@@ -251,7 +251,7 @@ export const db = {
     return (tasks || []).map(t => dbToTask(t, linksByTask[t.id] || []));
   },
 
-  async createTask(projectId: string, title: string, status: TaskStatus = 'backlog'): Promise<Task> {
+  async createTask(projectId: string, title: string, status: TaskStatus = 'todo'): Promise<Task> {
     // Get max order for this status
     const { data: existing } = await supabase
       .from('tasks')

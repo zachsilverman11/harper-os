@@ -35,7 +35,7 @@ export interface DbTask {
   parent_task_id: string | null;
   title: string;
   description: string | null;
-  status: 'idea' | 'backlog' | 'this_week' | 'today' | 'in_progress' | 'needs_review' | 'done';
+  status: 'idea' | 'todo' | 'doing' | 'review' | 'done';
   priority: 'critical' | 'high' | 'normal' | 'low';
   due_date: string | null;
   due_time: string | null;

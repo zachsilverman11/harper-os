@@ -257,7 +257,7 @@ export const useHarperStore = create<HarperStore>()(
       setSelectedBusiness: (id) => set({ selectedBusinessId: id }),
 
       // Task actions
-      addTask: async (projectId, title, status = 'backlog') => {
+      addTask: async (projectId, title, status = 'todo') => {
         const tempId = generateId();
         const tempTask: Task = {
           id: tempId,
@@ -367,7 +367,7 @@ export const useHarperStore = create<HarperStore>()(
         const task = get().tasks.find((t) => t.id === taskId);
         if (!task) return;
         
-        await get().addTask(task.projectId, `${task.title} (copy)`, 'backlog');
+        await get().addTask(task.projectId, `${task.title} (copy)`, 'todo');
       },
 
       // Goal actions
@@ -541,7 +541,7 @@ export const useHarperStore = create<HarperStore>()(
       getTodayTasks: () => {
         const today = format(new Date(), 'yyyy-MM-dd');
         return get().tasks.filter(
-          (t) => t.status === 'today' || t.dueDate === today
+          (t) => t.status === 'doing' || t.dueDate === today
         );
       },
 

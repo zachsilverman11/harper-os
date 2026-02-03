@@ -36,7 +36,7 @@ export function TodayView() {
 
   const handleToggleComplete = (task: Task) => {
     updateTask(task.id, {
-      status: task.status === 'done' ? 'today' : 'done',
+      status: task.status === 'done' ? 'doing' : 'done',
     });
   };
 

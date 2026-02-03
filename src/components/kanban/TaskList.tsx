@@ -28,10 +28,10 @@ import {
 import { TaskDialog } from './TaskDialog';
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string; color: string }[] = [
-  { value: 'backlog', label: 'Backlog', color: 'bg-slate-500' },
-  { value: 'this_week', label: 'This Week', color: 'bg-amber-500' },
-  { value: 'today', label: 'Today', color: 'bg-blue-500' },
-  { value: 'in_progress', label: 'In Progress', color: 'bg-violet-500' },
+  { value: 'idea', label: 'Idea', color: 'bg-amber-500' },
+  { value: 'todo', label: 'Todo', color: 'bg-slate-500' },
+  { value: 'doing', label: 'Doing', color: 'bg-violet-500' },
+  { value: 'review', label: 'Review', color: 'bg-orange-500' },
   { value: 'done', label: 'Done', color: 'bg-emerald-500' },
 ];
 
@@ -59,7 +59,7 @@ function TaskRow({ task, projectName, projectColor, onTaskClick }: TaskRowProps)
 
   const handleToggleDone = () => {
     updateTask(task.id, { 
-      status: task.status === 'done' ? 'today' : 'done' 
+      status: task.status === 'done' ? 'todo' : 'done' 
     });
   };
 

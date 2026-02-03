@@ -1,5 +1,5 @@
 export type Priority = 'critical' | 'high' | 'normal' | 'low';
-export type TaskStatus = 'idea' | 'backlog' | 'this_week' | 'today' | 'in_progress' | 'needs_review' | 'done';
+export type TaskStatus = 'idea' | 'todo' | 'doing' | 'review' | 'done';
 export type RecurrenceType = 'daily' | 'weekly' | 'monthly' | 'yearly';
 export type BoardViewMode = 'kanban' | 'list';
 
@@ -105,11 +105,9 @@ export interface WeeklyPlan {
 
 export const STATUS_COLUMNS: { key: TaskStatus; label: string; icon: string }[] = [
   { key: 'idea', label: 'Ideas', icon: '💡' },
-  { key: 'backlog', label: 'Backlog', icon: '📥' },
-  { key: 'this_week', label: 'This Week', icon: '📅' },
-  { key: 'today', label: 'Today', icon: '🎯' },
-  { key: 'in_progress', label: 'In Progress', icon: '🔄' },
-  { key: 'needs_review', label: 'Needs Review', icon: '👀' },
+  { key: 'todo', label: 'Todo', icon: '📋' },
+  { key: 'doing', label: 'Doing', icon: '🔨' },
+  { key: 'review', label: 'Review', icon: '👀' },
   { key: 'done', label: 'Done', icon: '✅' },
 ];
 
