@@ -4,9 +4,61 @@ import { useHarperStore } from '@/lib/store';
 import { Project, Task } from '@/lib/types';
 import { Clock, CheckCircle2, AlertCircle, TrendingUp, TrendingDown, DollarSign, Users, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useEffect, useState } from 'react';
+
+interface KPIData {
+  websiteSessions: {
+    value: number;
+    trend: number;
+    trendUp: boolean;
+  };
+  organicTraffic: {
+    value: number;
+    trend: number;
+    trendUp: boolean;
+  };
+  bookings: {
+    value: number;
+    trend: number;
+    trendUp: boolean;
+  };
+  bounceRate: {
+    value: number;
+    trend: number;
+    trendUp: boolean;
+  };
+}
 
 export function DashboardView() {
   const { projects, tasks, businesses, getTasksByStatus } = useHarperStore();
+  const [kpiData, setKpiData] = useState<KPIData | null>(null);
+  const [kpiLoading, setKpiLoading] = useState(true);
+  const [kpiError, setKpiError] = useState<string | null>(null);
+
+  // Fetch KPI data on mount
+  useEffect(() => {
+    async function fetchKPIs() {
+      try {
+        setKpiLoading(true);
+        setKpiError(null);
+        const response = await fetch('/api/kpis');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch KPI data');
+        }
+        
+        const data = await response.json();
+        setKpiData(data);
+      } catch (err) {
+        console.error('Error fetching KPIs:', err);
+        setKpiError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setKpiLoading(false);
+      }
+    }
+
+    fetchKPIs();
+  }, []);
 
   // Get task counts by status (handle both old and new status values)
   const doingTasks = tasks.filter(t => 
@@ -51,39 +103,80 @@ export function DashboardView() {
     return { doing, todo, blocked, completed, total };
   };
 
+  // Helper to format numbers
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  };
+
   return (
     <div className="h-full overflow-auto bg-slate-950">
       <div className="max-w-[1800px] mx-auto p-4 md:p-6 lg:p-8">
         {/* Top KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
-          <KPICard
-            icon={<TrendingUp className="h-5 w-5" />}
-            label="Website Sessions"
-            value="24.3K"
-            trend="+12.5%"
-            trendUp={true}
-          />
-          <KPICard
-            icon={<Users className="h-5 w-5" />}
-            label="Organic Traffic"
-            value="8.1K"
-            trend="+8.3%"
-            trendUp={true}
-          />
-          <KPICard
-            icon={<CheckCircle2 className="h-5 w-5" />}
-            label="Bookings (MTD)"
-            value="47"
-            trend="+15.2%"
-            trendUp={true}
-          />
-          <KPICard
-            icon={<DollarSign className="h-5 w-5" />}
-            label="Outstanding Balance"
-            value="$12.4K"
-            trend="-5.1%"
-            trendUp={false}
-          />
+          {kpiLoading ? (
+            // Loading state
+            <>
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="bg-slate-900/50 border border-slate-800 rounded-lg p-3 md:p-4 animate-pulse"
+                >
+                  <div className="h-5 w-5 bg-slate-800 rounded mb-2" />
+                  <div className="h-8 bg-slate-800 rounded mb-2" />
+                  <div className="h-4 bg-slate-800 rounded w-24" />
+                </div>
+              ))}
+            </>
+          ) : kpiError ? (
+            // Error state - show placeholder message
+            <div className="col-span-2 lg:col-span-4 bg-slate-900/50 border border-slate-800 rounded-lg p-4 text-center">
+              <p className="text-slate-500 text-sm">
+                Unable to load KPI data. {kpiError}
+              </p>
+            </div>
+          ) : kpiData ? (
+            // Real data
+            <>
+              <KPICard
+                icon={<TrendingUp className="h-5 w-5" />}
+                label="Website Sessions"
+                value={formatNumber(kpiData.websiteSessions.value)}
+                trend={`${kpiData.websiteSessions.trend >= 0 ? '+' : ''}${kpiData.websiteSessions.trend.toFixed(1)}%`}
+                trendUp={kpiData.websiteSessions.trendUp}
+              />
+              <KPICard
+                icon={<Users className="h-5 w-5" />}
+                label="Organic Traffic"
+                value={formatNumber(kpiData.organicTraffic.value)}
+                trend={`${kpiData.organicTraffic.trend >= 0 ? '+' : ''}${kpiData.organicTraffic.trend.toFixed(1)}%`}
+                trendUp={kpiData.organicTraffic.trendUp}
+              />
+              <KPICard
+                icon={<CheckCircle2 className="h-5 w-5" />}
+                label="Bookings (MTD)"
+                value={kpiData.bookings.value.toString()}
+                trend={kpiData.bookings.trend === 0 ? '—' : `${kpiData.bookings.trend >= 0 ? '+' : ''}${kpiData.bookings.trend.toFixed(1)}%`}
+                trendUp={kpiData.bookings.trendUp}
+              />
+              <KPICard
+                icon={<BarChart3 className="h-5 w-5" />}
+                label="Bounce Rate"
+                value={`${kpiData.bounceRate.value.toFixed(1)}%`}
+                trend={`${kpiData.bounceRate.trend >= 0 ? '+' : ''}${kpiData.bounceRate.trend.toFixed(1)}%`}
+                trendUp={kpiData.bounceRate.trendUp}
+              />
+            </>
+          ) : (
+            // No data fallback
+            <div className="col-span-2 lg:col-span-4 bg-slate-900/50 border border-slate-800 rounded-lg p-4 text-center">
+              <p className="text-slate-500 text-sm">No KPI data available</p>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-6">
