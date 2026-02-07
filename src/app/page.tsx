@@ -6,6 +6,7 @@ import { KanbanBoard, TaskList } from '@/components/kanban';
 import { TodayView } from '@/components/today/TodayView';
 import { GoalsView } from '@/components/goals/GoalsView';
 import { DocumentsView } from '@/components/documents';
+import { DashboardView } from '@/components/dashboard';
 import { QuickCapture } from '@/components/quick-capture/QuickCapture';
 import { SearchModal } from '@/components/search/SearchModal';
 import { useHarperStore } from '@/lib/store';
@@ -37,6 +38,10 @@ export default function Home() {
       if (isInput) return;
       
       switch (e.key.toLowerCase()) {
+        case 'h':
+          e.preventDefault();
+          setView('dashboard');
+          break;
         case KEYBOARD_SHORTCUTS.today:
           e.preventDefault();
           setView('today');
@@ -94,6 +99,9 @@ export default function Home() {
               <Menu className="h-5 w-5" />
             </button>
             
+            {view === 'dashboard' && (
+              <h1 className="text-base md:text-lg font-semibold">Dashboard</h1>
+            )}
             {view === 'board' && (
               <>
                 {selectedProject ? (
@@ -168,6 +176,7 @@ export default function Home() {
 
         {/* Main content */}
         <div className="flex-1 overflow-auto">
+          {view === 'dashboard' && <DashboardView />}
           {view === 'board' && (
             boardViewMode === 'list' 
               ? <TaskList projectId={selectedProjectId} />
