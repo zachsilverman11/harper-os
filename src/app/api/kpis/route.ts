@@ -2,13 +2,23 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 // Create a separate Supabase client for Swim Hub (analytics data)
-const swimHubSupabase = createClient(
-  process.env.SWIMHUB_SUPABASE_URL!,
-  process.env.SWIMHUB_SUPABASE_SERVICE_KEY!
-);
+const swimHubUrl = process.env.SWIMHUB_SUPABASE_URL || '';
+const swimHubKey = process.env.SWIMHUB_SUPABASE_SERVICE_KEY || '';
+const swimHubSupabase = swimHubUrl && swimHubKey
+  ? createClient(swimHubUrl, swimHubKey)
+  : null;
 
 export async function GET() {
   try {
+    if (!swimHubSupabase) {
+      return NextResponse.json({
+        websiteSessions: { value: 0, trend: 0, trendUp: false },
+        organicTraffic: { value: 0, trend: 0, trendUp: false },
+        bookings: { value: 0, trend: 0, trendUp: false },
+        bounceRate: { value: 0, trend: 0, trendUp: false },
+      });
+    }
+
     // Calculate date ranges
     const today = new Date();
     const last7DaysStart = new Date(today);
