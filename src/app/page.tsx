@@ -7,6 +7,7 @@ import { TodayView } from '@/components/today/TodayView';
 import { GoalsView } from '@/components/goals/GoalsView';
 import { DocumentsView } from '@/components/documents';
 import { DashboardView } from '@/components/dashboard';
+import { ProjectsGrid, ProjectDetail } from '@/components/projects';
 import { QuickCapture } from '@/components/quick-capture/QuickCapture';
 import { SearchModal } from '@/components/search/SearchModal';
 import { useHarperStore } from '@/lib/store';
@@ -40,7 +41,7 @@ export default function Home() {
       switch (e.key.toLowerCase()) {
         case 'h':
           e.preventDefault();
-          setView('dashboard');
+          setView('projects');
           break;
         case KEYBOARD_SHORTCUTS.today:
           e.preventDefault();
@@ -73,6 +74,19 @@ export default function Home() {
     ? projects.find((p) => p.id === selectedProjectId) 
     : null;
 
+  const getHeaderTitle = () => {
+    switch (view) {
+      case 'projects': return 'Projects';
+      case 'project-detail': return 'Project Detail';
+      case 'dashboard': return 'Dashboard';
+      case 'today': return 'Today';
+      case 'goals': return 'Goals';
+      case 'documents': return 'Documents';
+      case 'board': return selectedProject ? null : 'All Tasks'; // handled below for project board
+      default: return '';
+    }
+  };
+
   return (
     <main className="h-screen flex bg-slate-950 text-slate-100 overflow-hidden">
       {/* Loading overlay */}
@@ -99,37 +113,21 @@ export default function Home() {
               <Menu className="h-5 w-5" />
             </button>
             
-            {view === 'dashboard' && (
-              <h1 className="text-base md:text-lg font-semibold">Dashboard</h1>
-            )}
-            {view === 'board' && (
+            {view === 'board' && selectedProject ? (
               <>
-                {selectedProject ? (
-                  <>
-                    <div
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: selectedProject.color }}
-                    />
-                    <h1 className="text-base md:text-lg font-semibold truncate max-w-[150px] md:max-w-none">{selectedProject.name}</h1>
-                    {selectedProject.description && (
-                      <span className="text-sm text-slate-500 hidden md:block">
-                        — {selectedProject.description}
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <h1 className="text-base md:text-lg font-semibold">All Tasks</h1>
+                <div
+                  className="h-3 w-3 rounded-full"
+                  style={{ backgroundColor: selectedProject.color }}
+                />
+                <h1 className="text-base md:text-lg font-semibold truncate max-w-[150px] md:max-w-none">{selectedProject.name}</h1>
+                {selectedProject.description && (
+                  <span className="text-sm text-slate-500 hidden md:block">
+                    — {selectedProject.description}
+                  </span>
                 )}
               </>
-            )}
-            {view === 'today' && (
-              <h1 className="text-base md:text-lg font-semibold">Today</h1>
-            )}
-            {view === 'goals' && (
-              <h1 className="text-base md:text-lg font-semibold">Goals</h1>
-            )}
-            {view === 'documents' && (
-              <h1 className="text-base md:text-lg font-semibold">Documents</h1>
+            ) : (
+              <h1 className="text-base md:text-lg font-semibold">{getHeaderTitle()}</h1>
             )}
           </div>
           
@@ -162,7 +160,7 @@ export default function Home() {
               </div>
             )}
             
-            {/* Search button - icon only on mobile */}
+            {/* Search button */}
             <button
               onClick={() => setSearchOpen(true)}
               className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-300 bg-slate-900 p-2 md:px-3 md:py-1.5 rounded-lg border border-slate-800"
@@ -176,6 +174,8 @@ export default function Home() {
 
         {/* Main content */}
         <div className="flex-1 overflow-auto">
+          {view === 'projects' && <ProjectsGrid />}
+          {view === 'project-detail' && <ProjectDetail />}
           {view === 'dashboard' && <DashboardView />}
           {view === 'board' && (
             boardViewMode === 'list' 

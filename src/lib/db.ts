@@ -1,5 +1,5 @@
 import { supabase, DbBusiness, DbProject, DbTask, DbTaskLink, DbGoal, DbMilestone, DbDailyFocus, DbDocument } from './supabase';
-import { Business, Project, Task, TaskStatus, Priority, Goal, DailyFocus, TaskLink, Document, DocType, DocStatus } from './types';
+import { Business, Project, ProjectStatusLabel, Task, TaskStatus, Priority, Goal, DailyFocus, TaskLink, Document, DocType, DocStatus } from './types';
 
 // ===========================================
 // TRANSFORM HELPERS (DB <-> App)
@@ -25,6 +25,10 @@ function dbToProject(db: DbProject): Project {
     color: db.color,
     order: db.order,
     archived: db.archived,
+    currentPhase: db.current_phase ?? 1,
+    totalPhases: db.total_phases ?? 1,
+    phaseName: db.phase_name || undefined,
+    statusLabel: (db.status_label as ProjectStatusLabel) || 'active',
     createdAt: new Date(db.created_at),
     updatedAt: new Date(db.updated_at),
   };
@@ -213,6 +217,10 @@ export const db = {
     if (updates.color !== undefined) dbUpdates.color = updates.color;
     if (updates.order !== undefined) dbUpdates.order = updates.order;
     if (updates.archived !== undefined) dbUpdates.archived = updates.archived;
+    if (updates.currentPhase !== undefined) dbUpdates.current_phase = updates.currentPhase;
+    if (updates.totalPhases !== undefined) dbUpdates.total_phases = updates.totalPhases;
+    if (updates.phaseName !== undefined) dbUpdates.phase_name = updates.phaseName || null;
+    if (updates.statusLabel !== undefined) dbUpdates.status_label = updates.statusLabel;
     
     const { error } = await supabase
       .from('projects')

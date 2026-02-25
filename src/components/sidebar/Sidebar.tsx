@@ -2,7 +2,7 @@
 
 import { 
   LayoutGrid, Target, Compass, Plus, 
-  ChevronDown, Settings, Search, Zap, X, FileText, Home
+  ChevronDown, Settings, Search, Zap, X, FileText, FolderKanban
 } from 'lucide-react';
 import { useHarperStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
@@ -138,36 +138,20 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       {/* Navigation */}
       <nav className="px-3 space-y-1">
         <Button
-          variant={view === 'dashboard' ? 'secondary' : 'ghost'}
+          variant={(view === 'projects' || view === 'project-detail') ? 'secondary' : 'ghost'}
           className={`w-full justify-start ${
-            view === 'dashboard' 
+            (view === 'projects' || view === 'project-detail')
               ? 'bg-blue-500/20 text-blue-400' 
               : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
           }`}
           onClick={() => handleNavigation(() => {
-            setView('dashboard');
+            setView('projects');
             setSelectedProject(null);
           })}
         >
-          <Home className="h-4 w-4 mr-2" />
-          Dashboard
+          <FolderKanban className="h-4 w-4 mr-2" />
+          Projects
           <span className="ml-auto text-xs text-slate-600 hidden md:inline">H</span>
-        </Button>
-        <Button
-          variant={view === 'today' ? 'secondary' : 'ghost'}
-          className={`w-full justify-start ${
-            view === 'today' 
-              ? 'bg-blue-500/20 text-blue-400' 
-              : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
-          }`}
-          onClick={() => handleNavigation(() => {
-            setView('today');
-            setSelectedProject(null);
-          })}
-        >
-          <Target className="h-4 w-4 mr-2" />
-          Today
-          <span className="ml-auto text-xs text-slate-600 hidden md:inline">T</span>
         </Button>
         <Button
           variant={view === 'board' ? 'secondary' : 'ghost'}
@@ -182,21 +166,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           })}
         >
           <LayoutGrid className="h-4 w-4 mr-2" />
-          All Tasks
+          Board
           <span className="ml-auto text-xs text-slate-600 hidden md:inline">B</span>
-        </Button>
-        <Button
-          variant={view === 'goals' ? 'secondary' : 'ghost'}
-          className={`w-full justify-start ${
-            view === 'goals' 
-              ? 'bg-blue-500/20 text-blue-400' 
-              : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
-          }`}
-          onClick={() => handleNavigation(() => setView('goals'))}
-        >
-          <Compass className="h-4 w-4 mr-2" />
-          Goals
-          <span className="ml-auto text-xs text-slate-600 hidden md:inline">G</span>
         </Button>
         <Button
           variant={view === 'documents' ? 'secondary' : 'ghost'}

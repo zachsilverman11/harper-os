@@ -25,6 +25,10 @@ export interface DbProject {
   color: string;
   order: number;
   archived: boolean;
+  current_phase: number;
+  total_phases: number;
+  phase_name: string | null;
+  status_label: string;
   created_at: string;
   updated_at: string;
 }
