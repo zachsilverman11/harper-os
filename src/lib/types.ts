@@ -13,6 +13,8 @@ export interface Business {
   type: 'business' | 'personal'; // Inspired Swim, Inspired Mortgage, or Personal
 }
 
+export type ProjectStatusLabel = 'active' | 'live' | 'building' | 'waiting' | 'planned' | 'paused' | 'done';
+
 export interface Project {
   id: string;
   businessId: string; // Links to parent business
@@ -21,9 +23,23 @@ export interface Project {
   color: string;
   order: number;
   archived: boolean;
+  currentPhase: number;
+  totalPhases: number;
+  phaseName?: string;
+  statusLabel: ProjectStatusLabel;
   createdAt: Date;
   updatedAt: Date;
 }
+
+export const PROJECT_STATUS_CONFIG: Record<ProjectStatusLabel, { label: string; dotColor: string; bgColor: string; textColor: string }> = {
+  live: { label: 'LIVE', dotColor: 'bg-emerald-400', bgColor: 'bg-emerald-500/15', textColor: 'text-emerald-400' },
+  active: { label: 'ACTIVE', dotColor: 'bg-emerald-400', bgColor: 'bg-emerald-500/15', textColor: 'text-emerald-400' },
+  building: { label: 'BUILDING', dotColor: 'bg-blue-400', bgColor: 'bg-blue-500/15', textColor: 'text-blue-400' },
+  waiting: { label: 'WAITING', dotColor: 'bg-amber-400', bgColor: 'bg-amber-500/15', textColor: 'text-amber-400' },
+  planned: { label: 'PLANNED', dotColor: 'bg-slate-400', bgColor: 'bg-slate-500/15', textColor: 'text-slate-400' },
+  paused: { label: 'PAUSED', dotColor: 'bg-slate-500', bgColor: 'bg-slate-600/15', textColor: 'text-slate-500' },
+  done: { label: 'DONE', dotColor: 'bg-violet-400', bgColor: 'bg-violet-500/15', textColor: 'text-violet-400' },
+};
 
 export interface TaskLink {
   type: 'repo' | 'vercel' | 'doc' | 'url' | 'notion' | 'figma';

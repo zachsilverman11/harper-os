@@ -27,10 +27,11 @@ interface HarperStore {
   // UI State
   selectedProjectId: string | null;
   selectedBusinessId: string | null;
-  view: 'dashboard' | 'board' | 'today' | 'goals' | 'weekly' | 'documents';
+  view: 'projects' | 'dashboard' | 'board' | 'today' | 'goals' | 'weekly' | 'documents' | 'project-detail';
   boardViewMode: BoardViewMode;
   searchQuery: string;
   quickCaptureOpen: boolean;
+  selectedDetailProjectId: string | null;
   
   // Initialize from Supabase
   initialize: () => Promise<void>;
@@ -90,7 +91,9 @@ interface HarperStore {
   setWeeklyPlan: (weekStart: string, plan: Partial<WeeklyPlan>) => void;
   
   // UI actions
-  setView: (view: 'dashboard' | 'board' | 'today' | 'goals' | 'weekly' | 'documents') => void;
+  setView: (view: 'projects' | 'dashboard' | 'board' | 'today' | 'goals' | 'weekly' | 'documents' | 'project-detail') => void;
+  setSelectedDetailProject: (id: string | null) => void;
+  openProjectDetail: (id: string) => void;
   setBoardViewMode: (mode: BoardViewMode) => void;
   setSearchQuery: (query: string) => void;
   setQuickCaptureOpen: (open: boolean) => void;
@@ -123,10 +126,11 @@ export const useHarperStore = create<HarperStore>()(
       lastSyncError: null,
       selectedProjectId: null,
       selectedBusinessId: null,
-      view: 'dashboard',
+      view: 'projects',
       boardViewMode: 'list',
       searchQuery: '',
       quickCaptureOpen: false,
+      selectedDetailProjectId: null,
 
       // Initialize from Supabase
       initialize: async () => {
@@ -519,6 +523,8 @@ export const useHarperStore = create<HarperStore>()(
 
       // UI actions
       setView: (view) => set({ view }),
+      setSelectedDetailProject: (id) => set({ selectedDetailProjectId: id }),
+      openProjectDetail: (id) => set({ view: 'project-detail', selectedDetailProjectId: id }),
       setBoardViewMode: (boardViewMode) => set({ boardViewMode }),
       setSearchQuery: (searchQuery) => set({ searchQuery }),
       setQuickCaptureOpen: (quickCaptureOpen) => set({ quickCaptureOpen }),
